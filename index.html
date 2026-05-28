@@ -760,7 +760,10 @@ function selecionarCliente() {
   infoEl.innerHTML = c.nome + "<br>" + (c.cnpj||"") + " - " + (c.cidade||"") + "<br>" + (c.tel||"") + " - " + (c.email||"");
 }
 
-function getPreco(linha) {
+function getPreco(linha, itemOverride) {
+  if(itemOverride && itemOverride.unitarioOriginal && itemOverride.unitarioOriginal > 0) {
+    return itemOverride.unitarioOriginal;
+  }
   var d = PRECOS[linha] || PRECOS["IMPULSE"];
   return d.p[condAtual] || 0;
 }
@@ -799,7 +802,7 @@ function renderModal(lista) {
   var html = "";
   for(var i=0;i<lista.length;i++) {
     var p = lista[i];
-    var pr = getPreco(p.l);
+    var pr = getPreco(p.l, null);
     var ok = ja.indexOf(p.r)>=0;
     html += "<div class='mitem' onclick='addProd(\""+p.r+"\")'><div><div class='mref'>"+p.r+(ok?" (add)":"")+"</div><div class='minfo'><span class='badge'>"+p.l+"</span>"+p.n+"</div></div><div class='mprice'>R$ "+pr.toFixed(2).replace(".",",")+"</div></div>";
   }
@@ -821,7 +824,7 @@ function renderItens() {
   var html = "";
   for(var i=0;i<itens.length;i++) {
     var item = itens[i];
-    var pr = getPreco(item.l);
+    var pr = getPreco(item.l, item);
     var tp = 0;
     for(var j=0;j<item.ns.length;j++) tp += (item.qtds[item.ns[j]]||0);
     var tv = tp*pr;
@@ -849,7 +852,7 @@ function remItem(i) { itens.splice(i,1); renderItens(); atuResumo(); }
 function atuResumo() {
   var tp=0,tv=0,html="";
   for(var i=0;i<itens.length;i++) {
-    var item=itens[i]; var pr=getPreco(item.l); var p=0;
+    var item=itens[i]; var pr=getPreco(item.l, item); var p=0;
     for(var j=0;j<item.ns.length;j++) p+=(item.qtds[item.ns[j]]||0);
     if(p>0){var v=p*pr;tp+=p;tv+=v;html+="<div class='rl'><span style='font-family:monospace'>"+item.r+"</span><span>"+p+"p - R$ "+v.toFixed(2).replace(".",",")+"</span></div>";}
   }
@@ -867,7 +870,7 @@ function salvarPedido() {
   if(!cliId) { alert("Selecione o cliente."); return; }
   var tp=0,tv=0;
   for(var i=0;i<itens.length;i++) {
-    var item=itens[i]; var pr=getPreco(item.l);
+    var item=itens[i]; var pr=getPreco(item.l, item);
     for(var j=0;j<item.ns.length;j++) { var q=item.qtds[item.ns[j]]||0; tp+=q; tv+=q*pr; }
   }
   if(tp===0) { alert("Adicione pelo menos um produto."); return; }
@@ -917,7 +920,7 @@ function gerar() {
   var hoje=new Date().toLocaleDateString("pt-BR");
   var tp=0,tv=0,txt="",ni=1;
   for(var i=0;i<itens.length;i++) {
-    var item=itens[i]; var pr=getPreco(item.l);
+    var item=itens[i]; var pr=getPreco(item.l, item);
     var ns=[]; for(var j=0;j<item.ns.length;j++){if(item.qtds[item.ns[j]]>0)ns.push(item.ns[j]);}
     if(!ns.length) continue;
     var p=0; for(var j=0;j<item.ns.length;j++) p+=(item.qtds[item.ns[j]]||0);
