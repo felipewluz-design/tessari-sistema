@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tessari Representações</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0A2463;
+  --navy-light: #1A3875;
+  --disney-blue: #003DA5;
+  --ferracini-red: #C8102E;
+  --green: #1D9E75;
+  --amber: #E8A83E;
+  --bg: #F4F5F7;
+  --white: #FFFFFF;
+  --text: #1A1A2E;
+  --text-muted: #6B7280;
+  --border: #E5E7EB;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* APP SHELL */
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: var(--white); }
+.header { background: var(--navy); padding: 16px 20px 14px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.header-title { color: #fff; font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+.header-sub { color: rgba(255,255,255,0.5); font-size: 11px; font-family: 'DM Mono', monospace; margin-top: 1px; }
+.header-date { color: rgba(255,255,255,0.6); font-size: 11px; font-family: 'DM Mono', monospace; text-align: right; }
+
+.content { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+/* BOTTOM NAV */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--white); border-top: 1px solid var(--border); display: flex; z-index: 100; }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 12px; gap: 3px; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; color: var(--text-muted); font-size: 10px; font-weight: 500; transition: color 0.15s; }
+.nav-btn.active { color: var(--navy); }
+.nav-btn svg { width: 22px; height: 22px; stroke-width: 1.8; }
+.nav-btn.active svg { stroke-width: 2.2; }
+
+/* SCREENS */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* HOME */
+.home-banner { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%); padding: 20px; margin: 16px; border-radius: var(--radius); color: white; }
+.home-banner h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.home-banner p { font-size: 12px; opacity: 0.7; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; margin-bottom: 16px; }
+.stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
+.stat-card .label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.stat-card .value { font-size: 20px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+.stat-card .sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.stat-card.accent-disney { border-left: 3px solid var(--disney-blue); }
+.stat-card.accent-ferracini { border-left: 3px solid var(--ferracini-red); }
+.stat-card.accent-green { border-left: 3px solid var(--green); }
+.stat-card.accent-amber { border-left: 3px solid var(--amber); }
+
+.section-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; padding: 0 16px; margin-bottom: 10px; }
+.quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; margin-bottom: 20px; }
+.qa-btn { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; text-align: left; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+.qa-btn:hover { border-color: var(--navy); }
+.qa-btn .qa-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.qa-btn .qa-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.qa-btn .qa-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.qa-btn.full { grid-column: 1/-1; display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.qa-btn.full .qa-icon { margin-bottom: 0; flex-shrink: 0; }
+.qa-btn.full .qa-text { flex: 1; }
+
+.alert-card { margin: 0 16px 16px; background: #FFF8E1; border: 1px solid #F59E0B; border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
+.alert-card svg { width: 18px; height: 18px; color: #F59E0B; flex-shrink: 0; margin-top: 1px; }
+.alert-card p { font-size: 12px; color: #92400E; line-height: 1.5; }
+
+/* DISNEY MODULE */
+.module-header { padding: 16px 16px 0; }
+.module-header h2 { font-size: 18px; font-weight: 600; color: var(--text); }
+.module-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.form-section { padding: 16px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; background: var(--white); outline: none; transition: border-color 0.15s; }
+.form-group input:focus, .form-group select:focus { border-color: var(--navy); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.divider { height: 1px; background: var(--border); margin: 0 16px 16px; }
+
+.produto-list { padding: 0 16px; }
+.produto-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; transition: border-color 0.15s; }
+.produto-card.selected { border-color: var(--disney-blue); background: #F0F4FF; }
+.produto-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.produto-ref { font-size: 14px; font-weight: 700; color: var(--text); font-family: 'DM Mono', monospace; }
+.produto-info { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.produto-price { font-size: 13px; font-weight: 600; color: var(--disney-blue); text-align: right; }
+.produto-price span { display: block; font-size: 10px; color: var(--text-muted); font-weight: 400; }
+
+.grade-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.grade-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.num-cell { position: relative; }
+.num-cell input { position: absolute; opacity: 0; width: 0; height: 0; }
+.num-cell label { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-muted); background: var(--white); transition: all 0.12s; user-select: none; gap: 1px; }
+.num-cell label .qty { font-size: 9px; font-family: 'DM Mono', monospace; color: var(--disney-blue); display: none; }
+.num-cell.has-qty label { border-color: var(--disney-blue); background: var(--disney-blue); color: white; }
+.num-cell.has-qty label .qty { display: block; color: rgba(255,255,255,0.9); }
+
+.qty-controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.qty-controls label { font-size: 12px; color: var(--text-muted); flex: 1; }
+.qty-btn { width: 28px; height: 28px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: var(--text); font-family: 'DM Sans', sans-serif; transition: all 0.12s; }
+.qty-btn:hover { border-color: var(--disney-blue); color: var(--disney-blue); }
+.qty-display { font-size: 16px; font-weight: 700; min-width: 24px; text-align: center; font-family: 'DM Mono', monospace; }
+
+.add-produto-btn { width: calc(100% - 32px); margin: 0 16px 16px; padding: 12px; border: 1.5px dashed var(--border); border-radius: var(--radius); background: none; cursor: pointer; font-size: 13px; color: var(--text-muted); font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
+.add-produto-btn:hover { border-color: var(--disney-blue); color: var(--disney-blue); }
+
+.resumo-card { margin: 0 16px 16px; background: var(--navy); border-radius: var(--radius); padding: 16px; color: white; }
+.resumo-card h3 { font-size: 13px; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+.resumo-linha { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; opacity: 0.9; }
+.resumo-linha .ref { font-family: 'DM Mono', monospace; font-size: 12px; }
+.resumo-sep { height: 1px; background: rgba(255,255,255,0.15); margin: 8px 0; }
+.resumo-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; }
+.resumo-pares { font-size: 11px; opacity: 0.6; margin-top: 4px; }
+
+.pedido-minimo { margin: 0 16px 8px; padding: 8px 12px; background: #FFF3CD; border-radius: var(--radius-sm); border: 1px solid #FFC107; }
+.pedido-minimo p { font-size: 12px; color: #856404; }
+.pedido-minimo .atual { font-weight: 700; }
+
+.btn-gerar { width: calc(100% - 32px); margin: 0 16px 16px; padding: 14px; background: var(--disney-blue); color: white; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: opacity 0.15s; }
+.btn-gerar:hover { opacity: 0.9; }
+.btn-gerar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* PRODUTO SELECTOR MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column; }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 16px; font-weight: 600; }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text-muted); }
+.modal-search { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.modal-search input { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; }
+.modal-search input:focus { border-color: var(--navy); }
+.modal-list { overflow-y: auto; flex: 1; padding: 8px; }
+.modal-item { padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.modal-item:hover { background: var(--bg); }
+.modal-item .item-ref { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); }
+.modal-item .item-info { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.modal-item .item-price { font-size: 13px; font-weight: 600; color: var(--disney-blue); }
+.linha-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #EEF2FF; color: var(--disney-blue); text-transform: uppercase; margin-right: 4px; }
+
+/* PEDIDO GERADO */
+.pedido-gerado { display: none; margin: 0 16px 16px; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); }
+.pedido-gerado.visible { display: block; }
+.pedido-gerado-header { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.pedido-gerado-header h4 { font-size: 13px; font-weight: 600; }
+.pedido-gerado pre { padding: 14px; font-family: 'DM Mono', monospace; font-size: 11px; white-space: pre-wrap; color: var(--text); line-height: 1.6; overflow-x: auto; }
+.btn-copy { padding: 6px 12px; background: var(--navy); color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+/* FERRACINI */
+.filter-tabs { display: flex; gap: 6px; padding: 12px 16px; overflow-x: auto; }
+.filter-tab { flex-shrink: 0; padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--white); cursor: pointer; color: var(--text-muted); font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+.filter-tab.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+.cliente-list { padding: 0 16px; }
+.cliente-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: border-color 0.15s; }
+.cliente-card:hover { border-color: var(--navy); }
+.cliente-nome { font-size: 14px; font-weight: 600; color: var(--text); }
+.cliente-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.ativo { background: var(--green); }
+.status-dot.morno { background: var(--amber); }
+.status-dot.frio { background: var(--ferracini-red); }
+.status-pill { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; }
+.status-pill.ativo { background: #ECFDF5; color: #065F46; }
+.status-pill.morno { background: #FFFBEB; color: #92400E; }
+.status-pill.frio { background: #FEF2F2; color: #991B1B; }
+.cliente-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+/* GASTOS */
+.gastos-resumo { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 16px; margin-bottom: 16px; }
+.gasto-stat { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+.gasto-stat .val { font-size: 16px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); }
+.gasto-stat .lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+.gasto-form { padding: 0 16px; margin-bottom: 16px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); margin: 0 16px 16px; padding: 16px; }
+.gasto-form h3 { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+.cat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 12px; }
+.cat-btn { padding: 8px 4px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--white); font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; font-family: 'DM Sans', sans-serif; color: var(--text-muted); transition: all 0.12s; }
+.cat-btn.active { border-color: var(--green); background: #ECFDF5; color: #065F46; }
+.valor-row { display: flex; gap: 8px; }
+.valor-row input { flex: 1; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Mono', monospace; outline: none; }
+.valor-row input:focus { border-color: var(--green); }
+.btn-salvar-gasto { padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+
+.historico-list { padding: 0 16px; }
+.gasto-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.gasto-item:last-child { border-bottom: none; }
+.gasto-cat-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 16px; flex-shrink: 0; }
+.gasto-left { display: flex; align-items: center; }
+.gasto-nome { font-size: 13px; font-weight: 600; }
+.gasto-obs { font-size: 11px; color: var(--text-muted); }
+.gasto-valor { font-size: 14px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); }
+.historico-total { display: flex; justify-content: space-between; padding: 12px 16px; background: var(--bg); border-radius: 0 0 var(--radius) var(--radius); font-weight: 700; font-size: 14px; }
+.historico-total span:last-child { font-family: 'DM Mono', monospace; color: var(--ferracini-red); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="header-title">Tessari Representações</div>
+      <div class="header-sub">Sistema de gestão</div>
+    </div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+
+  <div class="content">
+    <!-- HOME -->
+    <div id="screen-home" class="screen active">
+      <div class="home-banner">
+        <h2>Bom dia, Mauro 👋</h2>
+        <p>Resumo do mês — Maio 2026</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card accent-disney">
+          <div class="label">Pedidos Disney</div>
+          <div class="value">0</div>
+          <div class="sub">este mês</div>
+        </div>
+        <div class="stat-card accent-ferracini">
+          <div class="label">Pedidos Ferracini</div>
+          <div class="value">0</div>
+          <div class="sub">este mês</div>
+        </div>
+        <div class="stat-card accent-green">
+          <div class="label">Total vendido</div>
+          <div class="value">R$0</div>
+          <div class="sub">Disney + Ferracini</div>
+        </div>
+        <div class="stat-card accent-amber">
+          <div class="label">Gastos mês</div>
+          <div class="value">R$0</div>
+          <div class="sub">na estrada</div>
+        </div>
+      </div>
+
+      <div class="alert-card">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+        <p>3 clientes sem contato há mais de 30 dias. <strong>Ver lista →</strong></p>
+      </div>
+
+      <div class="section-label">Acesso rápido</div>
+      <div class="quick-actions">
+        <button class="qa-btn" onclick="showScreen('disney')">
+          <div class="qa-icon" style="background:#EEF2FF">
+            <svg width="18" height="18" fill="none" stroke="#003DA5" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          </div>
+          <div class="qa-title">Novo pedido</div>
+          <div class="qa-desc">Disney / Dyan</div>
+        </button>
+        <button class="qa-btn" onclick="showScreen('ferracini')">
+          <div class="qa-icon" style="background:#FEF2F2">
+            <svg width="18" height="18" fill="none" stroke="#C8102E" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+          </div>
+          <div class="qa-title">Clientes</div>
+          <div class="qa-desc">Ferracini</div>
+        </button>
+        <button class="qa-btn full" onclick="showScreen('gastos')">
+          <div class="qa-icon" style="background:#ECFDF5">
+            <svg width="18" height="18" fill="none" stroke="#1D9E75" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75"/></svg>
+          </div>
+          <div class="qa-text">
+            <div class="qa-title">Registrar gasto do dia</div>
+            <div class="qa-desc">Combustível, alimentação, pedágio...</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- DISNEY -->
+    <div id="screen-disney" class="screen">
+      <div class="module-header">
+        <h2>Pedido Disney / Dyan</h2>
+        <p>Coleção Primavera/Verão 2026</p>
+      </div>
+
+      <div class="form-section">
+        <div class="form-group">
+          <label>Lojista</label>
+          <select id="clienteDisney">
+            <option value="">Selecionar cliente...</option>
+            <option>D.J. Calçados Ltda — Lauro Müller</option>
+            <option>Calçados Moda SC — Chapecó</option>
+            <option>Loja do Pé — Lages</option>
+            <option>Kid's Store — Joinville</option>
+            <option>Sapataria Modelo — Blumenau</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cond. pagamento</label>
+            <select id="condPagto" onchange="atualizarPrecos()">
+              <option value="15DD">15 DD</option>
+              <option value="30DD" selected>30 DD</option>
+              <option value="45DD">45 DD</option>
+              <option value="60DD">60 DD</option>
+              <option value="75DD">75 DD</option>
+              <option value="90DD">90 DD</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Prev. entrega</label>
+            <input type="date" id="prevEntrega" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observação</label>
+          <input type="text" id="obsDisney" placeholder="Opcional..." />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-label" style="padding:0 16px;margin-bottom:10px;">Produtos selecionados</div>
+
+      <div class="produto-list" id="produtoList"></div>
+
+      <button class="add-produto-btn" onclick="abrirModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        Adicionar produto
+      </button>
+
+      <div class="pedido-minimo">
+        <p>Pedido mínimo: <span class="atual" id="totalParesDisplay">0 pares</span> / 60 pares mínimos</p>
+      </div>
+
+      <div class="resumo-card" id="resumoCard">
+        <h3>Resumo do pedido</h3>
+        <div id="resumoItens"></div>
+        <div class="resumo-sep"></div>
+        <div class="resumo-total">
+          <span>Total</span>
+          <span id="resumoTotal">R$ 0,00</span>
+        </div>
+        <div class="resumo-pares" id="resumoPares">0 pares no total</div>
+      </div>
+
+      <button class="btn-gerar" id="btnGerar" onclick="gerarPedido()">Gerar pedido formatado</button>
+
+      <div class="pedido-gerado" id="pedidoGerado">
+        <div class="pedido-gerado-header">
+          <h4>Pedido gerado — copiar e enviar</h4>
+          <button class="btn-copy" onclick="copiarPedido()">Copiar</button>
+        </div>
+        <pre id="pedidoTexto"></pre>
+      </div>
+    </div>
+
+    <!-- FERRACINI -->
+    <div id="screen-ferracini" class="screen">
+      <div class="module-header">
+        <h2>Ferracini</h2>
+        <p>Carteira de clientes</p>
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filtrarClientes('todos',this)">Todos</button>
+        <button class="filter-tab" onclick="filtrarClientes('ativo',this)">Ativos</button>
+        <button class="filter-tab" onclick="filtrarClientes('morno',this)">Mornos</button>
+        <button class="filter-tab" onclick="filtrarClientes('frio',this)">Frios</button>
+      </div>
+      <div class="cliente-list" id="clienteList"></div>
+    </div>
+
+    <!-- GASTOS -->
+    <div id="screen-gastos" class="screen">
+      <div class="module-header" style="margin-bottom:16px;">
+        <h2>Controle de gastos</h2>
+        <p>Despesas da estrada</p>
+      </div>
+      <div class="gastos-resumo">
+        <div class="gasto-stat"><div class="val" id="gastoHoje">R$0</div><div class="lbl">Hoje</div></div>
+        <div class="gasto-stat"><div class="val" id="gastoSemana">R$0</div><div class="lbl">Semana</div></div>
+        <div class="gasto-stat"><div class="val" id="gastoMes">R$0</div><div class="lbl">Mês</div></div>
+      </div>
+
+      <div class="gasto-form">
+        <h3>Registrar gasto</h3>
+        <div class="cat-grid">
+          <button class="cat-btn active" onclick="selecionarCat(this,'combustivel')">⛽ Combustível</button>
+          <button class="cat-btn" onclick="selecionarCat(this,'alimentacao')">🍽️ Alimentação</button>
+          <button class="cat-btn" onclick="selecionarCat(this,'pedagio')">🛣️ Pedágio</button>
+          <button class="cat-btn" onclick="selecionarCat(this,'hospedagem')">🏨 Hospedagem</button>
+          <button class="cat-btn" onclick="selecionarCat(this,'estacionamento')">🅿️ Estacionamento</button>
+          <button class="cat-btn" onclick="selecionarCat(this,'outros')">📦 Outros</button>
+        </div>
+        <div class="form-group">
+          <label>Descrição (opcional)</label>
+          <input type="text" id="gastoObs" placeholder="Ex: Posto BR-101 km 230" />
+        </div>
+        <div class="valor-row">
+          <input type="number" id="gastoValor" placeholder="0,00" step="0.01" min="0" />
+          <button class="btn-salvar-gasto" onclick="salvarGasto()">Salvar</button>
+        </div>
+      </div>
+
+      <div class="section-label" style="padding:0 16px;margin-bottom:8px;">Histórico de hoje</div>
+      <div class="historico-list" id="historicoList" style="margin:0 16px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:0 12px;"></div>
+      <div class="historico-total" id="historicoTotal" style="display:none;">
+        <span>Total do dia</span>
+        <span id="totalDia">R$ 0,00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="showScreen('home')" id="nav-home">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+      Início
+    </button>
+    <button class="nav-btn" onclick="showScreen('disney')" id="nav-disney">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+      Disney
+    </button>
+    <button class="nav-btn" onclick="showScreen('ferracini')" id="nav-ferracini">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+      Ferracini
+    </button>
+    <button class="nav-btn" onclick="showScreen('gastos')" id="nav-gastos">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75"/></svg>
+      Gastos
+    </button>
+  </div>
+</div>
+
+<!-- MODAL SELETOR DE PRODUTO -->
+<div class="modal-overlay" id="modalOverlay" onclick="fecharModalFora(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Selecionar produto</h3>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-search">
+      <input type="text" id="searchProduto" placeholder="Buscar por ref, linha ou licença..." oninput="filtrarProdutos()" />
+    </div>
+    <div class="modal-list" id="modalList"></div>
+  </div>
+</div>
+
+<script>
+// ============ DADOS ============
+const PRECOS = {
+  // Coleção PV 2026 (tabela mai/26)
+  'IMPULSE':    {grade:[20,27], p:{15DD:57.36,30DD:57.95,45DD:58.53,60DD:59.08,75DD:59.64,90DD:60.17}},
+  'SPARK':      {grade:[20,27], p:{15DD:57.36,30DD:57.95,45DD:58.53,60DD:59.08,75DD:59.64,90DD:60.17}},
+  'TWIST':      {grade:[20,27], p:{15DD:57.36,30DD:57.95,45DD:58.53,60DD:59.08,75DD:59.64,90DD:60.17}},
+  'FLOW':       {grade:[20,27], p:{15DD:57.36,30DD:57.95,45DD:58.53,60DD:59.08,75DD:59.64,90DD:60.17}},
+  'BALLERINA':  {grade:[20,27], p:{15DD:60.86,30DD:61.49,45DD:62.10,60DD:62.69,75DD:63.28,90DD:63.84}},
+  'PRIME':      {grade:[20,27], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'ICON':       {grade:[20,27], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'VENTURE':    {grade:[20,27], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'FANTASY':    {grade:[20,27], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'SHINE':      {grade:[20,29], p:{15DD:70.61,30DD:71.34,45DD:72.05,60DD:72.73,75DD:73.42,90DD:74.07}},
+  'SOCCER':     {grade:[24,33], p:{15DD:57.36,30DD:57.95,45DD:58.53,60DD:59.08,75DD:59.64,90DD:60.17}},
+  'LOOPING':    {grade:[24,33], p:{15DD:66.19,30DD:66.87,45DD:67.54,60DD:68.18,75DD:68.82,90DD:69.43}},
+  'URBAN':      {grade:[24,33], p:{15DD:66.19,30DD:66.87,45DD:67.54,60DD:68.18,75DD:68.82,90DD:69.43}},
+  'FLASH LIGHT':{grade:[24,33], p:{15DD:75.02,30DD:75.79,45DD:76.55,60DD:77.27,75DD:78.01,90DD:78.70}},
+  'LUMINE':     {grade:[24,33], p:{15DD:75.02,30DD:75.79,45DD:76.55,60DD:77.27,75DD:78.01,90DD:78.70}},
+  'CLASSIC':    {grade:[28,35], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'NEW MAGIC':  {grade:[28,35], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'NEW EPIC':   {grade:[28,35], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'PUMP':       {grade:[28,37], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+  'JUMP':       {grade:[28,35], p:{15DD:66.19,30DD:66.87,45DD:67.54,60DD:68.18,75DD:68.82,90DD:69.43}},
+  'HIGH TOP':   {grade:[28,35], p:{15DD:66.19,30DD:66.87,45DD:67.54,60DD:68.18,75DD:68.82,90DD:69.43}},
+  'KINGDOM':    {grade:[28,35], p:{15DD:75.02,30DD:75.79,45DD:76.55,60DD:77.27,75DD:78.01,90DD:78.70}},
+  'MOMENTUM':   {grade:[28,35], p:{15DD:75.02,30DD:75.79,45DD:76.55,60DD:77.27,75DD:78.01,90DD:78.70}},
+  'LEGEND':     {grade:[28,35], p:{15DD:75.02,30DD:75.79,45DD:76.55,60DD:77.27,75DD:78.01,90DD:78.70}},
+  'SPEED':      {grade:[28,35], p:{15DD:114.73,30DD:115.91,45DD:117.07,60DD:118.17,75DD:119.30,90DD:120.35}},
+  'CANDY':      {grade:[20,27], p:{15DD:51.77,30DD:52.30,45DD:52.83,60DD:53.32,75DD:53.83,90DD:54.31}},
+  'DREAM':      {grade:[28,34], p:{15DD:56.09,30DD:56.67,45DD:57.23,60DD:57.77,75DD:58.32,90DD:58.84}},
+  'DIAMOND':    {grade:[28,34], p:{15DD:61.56,30DD:62.19,45DD:62.82,60DD:63.41,75DD:64.01,90DD:64.58}},
+  'VIBE':       {grade:[28,34], p:{15DD:61.78,30DD:62.42,45DD:63.04,60DD:63.63,75DD:64.24,90DD:64.81}},
+};
+
+const PRODUTOS = [
+  // IMPULSE
+  {ref:'DMY07DY',linha:'IMPULSE',licenca:'MICKEY'},
+  {ref:'DMN07DY',linha:'IMPULSE',licenca:'MINNIE'},
+  {ref:'DPD01DY',linha:'IMPULSE',licenca:'PATO DONALD'},
+  {ref:'DPR03DY',linha:'IMPULSE',licenca:'PRINCESAS'},
+  {ref:'DST30DY',linha:'IMPULSE',licenca:'STITCH'},
+  {ref:'MSY06DY',linha:'IMPULSE',licenca:'SPIDEY'},
+  // COSMIC
+  {ref:'DFR04DY',linha:'COSMIC',licenca:'FROZEN'},
+  {ref:'DMO03DY',linha:'COSMIC',licenca:'MOANA'},
+  {ref:'DST31DY',linha:'COSMIC',licenca:'STITCH'},
+  // ORIGIN
+  {ref:'DRL03DY',linha:'ORIGIN',licenca:'REI LEÃO'},
+  {ref:'MCA05DY',linha:'ORIGIN',licenca:'CAPITÃO AMERICA'},
+  {ref:'MSP15DY',linha:'ORIGIN',licenca:'SPIDER-MAN'},
+  // TWIST
+  {ref:'DMN08DY',linha:'TWIST',licenca:'MINNIE'},
+  {ref:'DPR04DY',linha:'TWIST',licenca:'PRINCESAS'},
+  {ref:'DST32DY',linha:'TWIST',licenca:'STITCH'},
+  {ref:'DST33DY',linha:'TWIST',licenca:'STITCH'},
+  {ref:'DST34DY',linha:'TWIST',licenca:'STITCH'},
+  {ref:'DTS08DY',linha:'TWIST',licenca:'TOY STORY'},
+  {ref:'DTS09DY',linha:'TWIST',licenca:'TOY STORY'},
+  {ref:'MHF04DY',linha:'TWIST',licenca:'HOMEM DE FERRO'},
+  {ref:'MHK04DY',linha:'TWIST',licenca:'HULK'},
+  {ref:'MSP16DY',linha:'TWIST',licenca:'SPIDER-MAN'},
+  // PRIME
+  {ref:'DCA03KR',linha:'PRIME',licenca:'CARROS'},
+  {ref:'DFR02KR',linha:'PRIME',licenca:'FROZEN'},
+  {ref:'DMA02KR',linha:'PRIME',licenca:'MARIE'},
+  {ref:'MAV01KR',linha:'PRIME',licenca:'AVENGERS'},
+  // VENTURE
+  {ref:'DMY06DY',linha:'VENTURE',licenca:'MICKEY'},
+  {ref:'DST29DY',linha:'VENTURE',licenca:'STITCH'},
+  {ref:'DTS07DY',linha:'VENTURE',licenca:'TOY STORY'},
+  {ref:'MCA04DY',linha:'VENTURE',licenca:'CAPITÃO AMERICA'},
+  // FANTASY
+  {ref:'DMN06DY',linha:'FANTASY',licenca:'MINNIE'},
+  {ref:'DST27DY',linha:'FANTASY',licenca:'STITCH'},
+  {ref:'DST28DY',linha:'FANTASY',licenca:'STITCH'},
+  // SHINE
+  {ref:'DMY08KR',linha:'SHINE',licenca:'MICKEY'},
+  {ref:'DMN06KR',linha:'SHINE',licenca:'MINNIE'},
+  {ref:'DPR02KR',linha:'SHINE',licenca:'PRINCESAS'},
+  {ref:'DRL03KR',linha:'SHINE',licenca:'REI LEÃO'},
+  {ref:'DST11KR',linha:'SHINE',licenca:'STITCH'},
+  {ref:'MSP03KR',linha:'SHINE',licenca:'SPIDER-MAN'},
+  // FLASH LIGHT
+  {ref:'DCA05DY',linha:'FLASH LIGHT',licenca:'CARROS'},
+  {ref:'DFR06DY',linha:'FLASH LIGHT',licenca:'FROZEN'},
+  {ref:'DMN11DY',linha:'FLASH LIGHT',licenca:'MINNIE'},
+  {ref:'DST41DY',linha:'FLASH LIGHT',licenca:'STITCH'},
+  {ref:'DTS12DY',linha:'FLASH LIGHT',licenca:'TOY STORY'},
+  {ref:'MSP21DY',linha:'FLASH LIGHT',licenca:'SPIDER-MAN'},
+  {ref:'MSP32DY',linha:'FLASH LIGHT',licenca:'SPIDER-MAN'},
+  // CLASSIC
+  {ref:'DFR05DY',linha:'CLASSIC',licenca:'FROZEN'},
+  {ref:'DMY08DY',linha:'CLASSIC',licenca:'MICKEY'},
+  {ref:'DMY09DY',linha:'CLASSIC',licenca:'MICKEY'},
+  {ref:'DST35DY',linha:'CLASSIC',licenca:'STITCH'},
+  {ref:'MAV03DY',linha:'CLASSIC',licenca:'AVENGERS'},
+  {ref:'MSP17DY',linha:'CLASSIC',licenca:'SPIDER-MAN'},
+  // NEW MAGIC
+  {ref:'DCA03DY',linha:'NEW MAGIC',licenca:'CARROS'},
+  {ref:'DMN09DY',linha:'NEW MAGIC',licenca:'MINNIE'},
+  {ref:'DPR05DY',linha:'NEW MAGIC',licenca:'PRINCESAS'},
+  {ref:'DST01DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DST21DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DST22DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DST23DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DST24DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DST25DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DST38DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DST39DY',linha:'NEW MAGIC',licenca:'STITCH'},
+  {ref:'DTS11DY',linha:'NEW MAGIC',licenca:'TOY STORY'},
+  {ref:'MCA06DY',linha:'NEW MAGIC',licenca:'CAPITÃO AMERICA'},
+  {ref:'MSP12DY',linha:'NEW MAGIC',licenca:'SPIDER-MAN'},
+  {ref:'MSP19DY',linha:'NEW MAGIC',licenca:'SPIDER-MAN'},
+  // NEW EPIC
+  {ref:'DDV04DY',linha:'NEW EPIC',licenca:'DIVERTIDAMENTE'},
+  {ref:'DMO04DY',linha:'NEW EPIC',licenca:'MOANA'},
+  {ref:'DST36DY',linha:'NEW EPIC',licenca:'STITCH'},
+  {ref:'DST37DY',linha:'NEW EPIC',licenca:'STITCH'},
+  {ref:'DTS10DY',linha:'NEW EPIC',licenca:'TOY STORY'},
+  {ref:'MHK05DY',linha:'NEW EPIC',licenca:'HULK'},
+  {ref:'MSP18DY',linha:'NEW EPIC',licenca:'SPIDER-MAN'},
+  {ref:'MTH02DY',linha:'NEW EPIC',licenca:'THOR'},
+  // HIGH TOP
+  {ref:'DFR07DY',linha:'HIGH TOP',licenca:'FROZEN'},
+  {ref:'DMO05DY',linha:'HIGH TOP',licenca:'MOANA'},
+  {ref:'DPR06DY',linha:'HIGH TOP',licenca:'PRINCESAS'},
+  {ref:'DST42DY',linha:'HIGH TOP',licenca:'STITCH'},
+  {ref:'DST43DY',linha:'HIGH TOP',licenca:'STITCH'},
+  {ref:'MHK06DY',linha:'HIGH TOP',licenca:'HULK'},
+  {ref:'MQF01DY',linha:'HIGH TOP',licenca:'QUARTETO FANTÁSTICO'},
+  {ref:'MSP22DY',linha:'HIGH TOP',licenca:'SPIDER-MAN'},
+  // KINGDOM
+  {ref:'DMY09KR',linha:'KINGDOM',licenca:'MICKEY'},
+  {ref:'DTS06KR',linha:'KINGDOM',licenca:'TOY STORY'},
+  {ref:'DTS08KR',linha:'KINGDOM',licenca:'TOY STORY'},
+  // MOMENTUM
+  {ref:'DCA04KR',linha:'MOMENTUM',licenca:'CARROS'},
+  {ref:'DMY10KR',linha:'MOMENTUM',licenca:'MICKEY'},
+  {ref:'DST12KR',linha:'MOMENTUM',licenca:'STITCH'},
+  // LEGEND
+  {ref:'DMN07KR',linha:'LEGEND',licenca:'MINNIE'},
+  {ref:'DST13KR',linha:'LEGEND',licenca:'STITCH'},
+  {ref:'DTS07KR',linha:'LEGEND',licenca:'TOY STORY'},
+  {ref:'MSP04KR',linha:'LEGEND',licenca:'SPIDER-MAN'},
+  // SOCCER
+  {ref:'MSP24DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  {ref:'MSP25DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  {ref:'MSP26DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  {ref:'MSP27DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  {ref:'MSP28DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  {ref:'MSP29DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  {ref:'MSP30DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  {ref:'MSP31DY',linha:'SOCCER',licenca:'SPIDER-MAN'},
+  // SANDÁLIAS PV
+  {ref:'DST01MG',linha:'CANDY',licenca:'STITCH'},
+  {ref:'DFR01MG',linha:'CANDY',licenca:'FROZEN'},
+  {ref:'DPR01MG',linha:'CANDY',licenca:'PRINCESAS'},
+  {ref:'DMO01MG',linha:'CANDY',licenca:'MOANA'},
+  {ref:'DMN01MG',linha:'CANDY',licenca:'MINNIE'},
+  {ref:'DST02MG',linha:'DREAM',licenca:'STITCH'},
+  {ref:'DMN02MG',linha:'DREAM',licenca:'MINNIE'},
+  {ref:'DMO02MG',linha:'DREAM',licenca:'MOANA'},
+  {ref:'DPR03MG',linha:'DREAM',licenca:'PRINCESAS'},
+  {ref:'DMN03MG',linha:'DIAMOND',licenca:'MINNIE'},
+  {ref:'DFR02MG',linha:'DIAMOND',licenca:'FROZEN'},
+  {ref:'DPR02MG',linha:'DIAMOND',licenca:'PRINCESAS'},
+  {ref:'DPR04MG',linha:'DIAMOND',licenca:'PRINCESAS'},
+  {ref:'DST03MG',linha:'VIBE',licenca:'STITCH'},
+  {ref:'DMO03MG',linha:'VIBE',licenca:'MOANA'},
+  {ref:'DMN04MG',linha:'VIBE',licenca:'MINNIE'},
+  {ref:'DMN05MG',linha:'VIBE',licenca:'MINNIE'},
+];
+
+const CLIENTES_FERRACINI = [
+  {nome:'Calçados Moda SC',cidade:'Chapecó',dias:5,status:'ativo',volume:'R$ 12.400'},
+  {nome:'Kid\'s Fashion',cidade:'Joinville',dias:22,status:'morno',volume:'R$ 8.200'},
+  {nome:'Sapataria Central',cidade:'Caçador',dias:38,status:'frio',volume:'R$ 5.600'},
+  {nome:'Loja Passos',cidade:'Lages',dias:41,status:'frio',volume:'R$ 9.100'},
+  {nome:'Tênis & Cia',cidade:'Blumenau',dias:8,status:'ativo',volume:'R$ 15.300'},
+  {nome:'Pé de Moleque',cidade:'Florianópolis',dias:15,status:'ativo',volume:'R$ 7.800'},
+  {nome:'Sapataria Modelo',cidade:'Balneário Camboriú',dias:31,status:'frio',volume:'R$ 4.200'},
+  {nome:'Calçados Norte',cidade:'Jaraguá do Sul',dias:12,status:'ativo',volume:'R$ 11.500'},
+];
+
+// ============ STATE ============
+let pedidoItens = [];
+let gastosCat = 'combustivel';
+let gastosHoje = [];
+let condAtual = '30DD';
+
+// ============ INIT ============
+document.addEventListener('DOMContentLoaded', () => {
+  const hoje = new Date();
+  document.getElementById('headerDate').innerHTML = hoje.toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'}).replace('.',',');
+  document.getElementById('prevEntrega').value = new Date(Date.now()+86400000*60).toISOString().split('T')[0];
+  renderClientes('todos');
+  renderHistorico();
+});
+
+// ============ NAVIGATION ============
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ============ DISNEY ============
+function getPreco(linha) {
+  const dados = PRECOS[linha];
+  if (!dados) return 0;
+  return dados.p[condAtual] || 0;
+}
+
+function atualizarPrecos() {
+  condAtual = document.getElementById('condPagto').value;
+  renderProdutos();
+  atualizarResumo();
+}
+
+function abrirModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('searchProduto').value = '';
+  renderModalList(PRODUTOS);
+  setTimeout(()=>document.getElementById('searchProduto').focus(),100);
+}
+
+function fecharModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function fecharModalFora(e) {
+  if (e.target === document.getElementById('modalOverlay')) fecharModal();
+}
+
+function filtrarProdutos() {
+  const q = document.getElementById('searchProduto').value.toLowerCase();
+  const filtered = PRODUTOS.filter(p =>
+    p.ref.toLowerCase().includes(q) ||
+    p.linha.toLowerCase().includes(q) ||
+    p.licenca.toLowerCase().includes(q)
+  );
+  renderModalList(filtered);
+}
+
+function renderModalList(lista) {
+  const el = document.getElementById('modalList');
+  const jaAdicionados = pedidoItens.map(i=>i.ref);
+  el.innerHTML = lista.map(p => {
+    const preco = getPreco(p.linha);
+    const jatem = jaAdicionados.includes(p.ref);
+    return `<div class="modal-item ${jatem?'':''}\" onclick="adicionarProduto('${p.ref}')">
+      <div>
+        <div class="item-ref">${p.ref} ${jatem?'✓':''}</div>
+        <div class="item-info"><span class="linha-badge">${p.linha}</span>${p.licenca}</div>
+      </div>
+      <div class="item-price">R$ ${preco.toFixed(2).replace('.',',')}</div>
+    </div>`;
+  }).join('');
+}
+
+function adicionarProduto(ref) {
+  if (pedidoItens.find(i=>i.ref===ref)) { fecharModal(); return; }
+  const prod = PRODUTOS.find(p=>p.ref===ref);
+  if (!prod) return;
+  const linhaData = PRECOS[prod.linha] || PRECOS['IMPULSE'];
+  const nums = [];
+  for (let n = linhaData.grade[0]; n <= linhaData.grade[1]; n++) nums.push(n);
+  pedidoItens.push({ref, linha:prod.linha, licenca:prod.licenca, nums, qtds:{}, qtdPadrao:1});
+  fecharModal();
+  renderProdutos();
+  atualizarResumo();
+}
+
+function renderProdutos() {
+  const el = document.getElementById('produtoList');
+  if (pedidoItens.length === 0) {
+    el.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;">Nenhum produto adicionado ainda</p>';
+    return;
+  }
+  el.innerHTML = pedidoItens.map((item, idx) => {
+    const preco = getPreco(item.linha);
+    const totalPares = item.nums.reduce((s,n)=> s + (item.qtds[n]||0), 0);
+    const totalItem = totalPares * preco;
+    return `<div class="produto-card ${totalPares>0?'selected':''}">
+      <div class="produto-top">
+        <div>
+          <div class="produto-ref">${item.ref}</div>
+          <div class="produto-info"><span class="linha-badge">${item.linha}</span>${item.licenca}</div>
+        </div>
+        <div>
+          <div class="produto-price">R$ ${preco.toFixed(2).replace('.',',')} <span>/par · ${condAtual}</span></div>
+          <button onclick="removerProduto(${idx})" style="font-size:11px;color:var(--ferracini-red);background:none;border:none;cursor:pointer;float:right;margin-top:4px;">remover</button>
+        </div>
+      </div>
+      <div class="grade-label">Grade de numeração — clique para selecionar</div>
+      <div class="grade-grid">
+        ${item.nums.map(n => {
+          const q = item.qtds[n]||0;
+          return `<div class="num-cell ${q>0?'has-qty':''}" id="cell_${idx}_${n}">
+            <label onclick="toggleNum(${idx},${n})">
+              ${n}
+              <span class="qty">${q>0?q:''}</span>
+            </label>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="qty-controls">
+        <label>Quantidade por número selecionado:</label>
+        <button class="qty-btn" onclick="mudarQtd(${idx},-1)">−</button>
+        <span class="qty-display">${item.qtdPadrao}</span>
+        <button class="qty-btn" onclick="mudarQtd(${idx},1)">+</button>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:8px;">${totalPares} pares · R$ ${totalItem.toFixed(2).replace('.',',')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleNum(idx, num) {
+  const item = pedidoItens[idx];
+  if (item.qtds[num]) {
+    delete item.qtds[num];
+  } else {
+    item.qtds[num] = item.qtdPadrao;
+  }
+  renderProdutos();
+  atualizarResumo();
+}
+
+function mudarQtd(idx, delta) {
+  const item = pedidoItens[idx];
+  item.qtdPadrao = Math.max(1, (item.qtdPadrao||1) + delta);
+  Object.keys(item.qtds).forEach(n => { item.qtds[n] = item.qtdPadrao; });
+  renderProdutos();
+  atualizarResumo();
+}
+
+function removerProduto(idx) {
+  pedidoItens.splice(idx,1);
+  renderProdutos();
+  atualizarResumo();
+}
+
+function atualizarResumo() {
+  let totalPares = 0;
+  let totalValor = 0;
+  let html = '';
+  pedidoItens.forEach(item => {
+    const preco = getPreco(item.linha);
+    const pares = item.nums.reduce((s,n)=>s+(item.qtds[n]||0),0);
+    if (pares > 0) {
+      const val = pares * preco;
+      totalPares += pares;
+      totalValor += val;
+      html += `<div class="resumo-linha"><span class="ref">${item.ref}</span><span>${pares}p · R$ ${val.toFixed(2).replace('.',',')}</span></div>`;
+    }
+  });
+  document.getElementById('resumoItens').innerHTML = html || '<div style="opacity:0.6;font-size:12px;">Nenhum item ainda</div>';
+  document.getElementById('resumoTotal').textContent = 'R$ ' + totalValor.toFixed(2).replace('.',',');
+  document.getElementById('resumoPares').textContent = totalPares + ' pares no total';
+  document.getElementById('totalParesDisplay').textContent = totalPares + ' pares';
+  document.getElementById('pedidoMinimo').style.background = totalPares >= 60 ? '#ECFDF5' : '#FFF3CD';
+  document.getElementById('pedidoMinimo').style.borderColor = totalPares >= 60 ? '#1D9E75' : '#FFC107';
+}
+
+function gerarPedido() {
+  const cliente = document.getElementById('clienteDisney').value;
+  if (!cliente) { alert('Selecione o cliente antes de gerar o pedido.'); return; }
+  const cond = document.getElementById('condPagto').value;
+  const entrega = document.getElementById('prevEntrega').value;
+  const obs = document.getElementById('obsDisney').value;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  let totalPares = 0, totalValor = 0;
+  let itensTexto = '';
+  let numItem = 1;
+  pedidoItens.forEach(item => {
+    const preco = getPreco(item.linha);
+    const numsComQtd = item.nums.filter(n => item.qtds[n]>0);
+    if (numsComQtd.length === 0) return;
+    const pares = numsComQtd.reduce((s,n)=>s+(item.qtds[n]||0),0);
+    const val = pares * preco;
+    totalPares += pares;
+    totalValor += val;
+    const gradeStr = item.nums.map(n=>(item.qtds[n]||0)).join(' ');
+    const numStr = item.nums.join(' ');
+    itensTexto += `\n${String(numItem).padStart(3,'0')} ${item.ref.padEnd(12)} ${item.linha.padEnd(12)} ${item.licenca}\n`;
+    itensTexto += `    ${numStr}\n`;
+    itensTexto += `    ${gradeStr}\n`;
+    itensTexto += `    Pares: ${pares}  Unit.: R$ ${preco.toFixed(2).replace('.',',')}  Total: R$ ${val.toFixed(2).replace('.',',')}\n`;
+    numItem++;
+  });
+  const texto = `CALÇADOS DYAN LTDA
+R VALTER FERREIRA DO AMARAL, 382
+CEP: 35523-232, NOVA SERRANA - MG
+CNPJ: 00.442.338/0001-01
+Fone: (37) 3226-2736
+${'─'.repeat(50)}
+Representante: TESSARI REPRESENTACOES
+Cliente: ${cliente}
+Emissão: ${hoje}
+Prev. Entrega: ${entrega ? new Date(entrega+'T12:00').toLocaleDateString('pt-BR') : '—'}
+Cond. Pagto: ${cond.replace('DD',' DD')}
+Frete: C
+${'─'.repeat(50)}
+ITEM  REF           LINHA        LICENÇA
+NUMERAÇÃO / QUANTIDADES${itensTexto}
+${'─'.repeat(50)}
+Sub total:   R$ ${totalValor.toFixed(2).replace('.',',')}
+Descontos:   R$ 0,00
+TOTAL:       R$ ${totalValor.toFixed(2).replace('.',',')}
+PARES:       ${totalPares}
+${'─'.repeat(50)}
+${obs ? 'OBS: '+obs : ''}`;
+  document.getElementById('pedidoTexto').textContent = texto;
+  document.getElementById('pedidoGerado').classList.add('visible');
+  document.getElementById('pedidoGerado').scrollIntoView({behavior:'smooth'});
+}
+
+function copiarPedido() {
+  const texto = document.getElementById('pedidoTexto').textContent;
+  navigator.clipboard.writeText(texto).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = 'Copiado ✓';
+    setTimeout(()=>btn.textContent='Copiar',2000);
+  });
+}
+
+// ============ FERRACINI ============
+function renderClientes(filtro) {
+  const lista = filtro==='todos' ? CLIENTES_FERRACINI : CLIENTES_FERRACINI.filter(c=>c.status===filtro);
+  const el = document.getElementById('clienteList');
+  el.innerHTML = lista.map(c => `
+    <div class="cliente-card">
+      <div>
+        <div class="cliente-nome">${c.nome}</div>
+        <div class="cliente-sub">${c.cidade} · ${c.dias} dias sem contato</div>
+        <div class="cliente-sub" style="margin-top:2px;">Volume: ${c.volume}</div>
+      </div>
+      <div class="cliente-right">
+        <span class="status-pill ${c.status}">${c.status.charAt(0).toUpperCase()+c.status.slice(1)}</span>
+        <div class="status-dot ${c.status}"></div>
+      </div>
+    </div>`).join('');
+}
+
+function filtrarClientes(filtro, btn) {
+  document.querySelectorAll('.filter-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderClientes(filtro);
+}
+
+// ============ GASTOS ============
+function selecionarCat(btn, cat) {
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  gastosCat = cat;
+}
+
+const catEmoji = {combustivel:'⛽',alimentacao:'🍽️',pedagio:'🛣️',hospedagem:'🏨',estacionamento:'🅿️',outros:'📦'};
+const catNome = {combustivel:'Combustível',alimentacao:'Alimentação',pedagio:'Pedágio',hospedagem:'Hospedagem',estacionamento:'Estacionamento',outros:'Outros'};
+const catBg = {combustivel:'#FFF8DC',alimentacao:'#FFE4E1',pedagio:'#E8F5E9',hospedagem:'#E3F2FD',estacionamento:'#F3E5F5',outros:'#FFF3E0'};
+
+function salvarGasto() {
+  const val = parseFloat(document.getElementById('gastoValor').value);
+  if (!val || val <= 0) { alert('Informe um valor válido.'); return; }
+  const obs = document.getElementById('gastoObs').value;
+  gastosHoje.push({cat:gastosCat, obs, valor:val, hora:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+  document.getElementById('gastoValor').value = '';
+  document.getElementById('gastoObs').value = '';
+  renderHistorico();
+  atualizarGastoStats();
+}
+
+function renderHistorico() {
+  const el = document.getElementById('historicoList');
+  const tot = document.getElementById('historicoTotal');
+  if (gastosHoje.length === 0) {
+    el.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;">Nenhum gasto registrado hoje</p>';
+    tot.style.display = 'none';
+    return;
+  }
+  el.innerHTML = gastosHoje.map((g,i) => `
+    <div class="gasto-item">
+      <div class="gasto-left">
+        <div class="gasto-cat-icon" style="background:${catBg[g.cat]}">${catEmoji[g.cat]}</div>
+        <div>
+          <div class="gasto-nome">${catNome[g.cat]}</div>
+          <div class="gasto-obs">${g.obs || g.hora}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="gasto-valor">R$ ${g.valor.toFixed(2).replace('.',',')}</div>
+        <button onclick="removerGasto(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;">×</button>
+      </div>
+    </div>`).join('');
+  const total = gastosHoje.reduce((s,g)=>s+g.valor,0);
+  document.getElementById('totalDia').textContent = 'R$ '+total.toFixed(2).replace('.',',');
+  tot.style.display = 'flex';
+}
+
+function removerGasto(i) {
+  gastosHoje.splice(i,1);
+  renderHistorico();
+  atualizarGastoStats();
+}
+
+function atualizarGastoStats() {
+  const total = gastosHoje.reduce((s,g)=>s+g.valor,0);
+  document.getElementById('gastoHoje').textContent = 'R$'+total.toFixed(0);
+  document.getElementById('gastoSemana').textContent = 'R$'+total.toFixed(0);
+  document.getElementById('gastoMes').textContent = 'R$'+total.toFixed(0);
+}
+</script>
+</body>
+</html>
