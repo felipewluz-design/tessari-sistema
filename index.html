@@ -247,6 +247,13 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   <h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Pedido Disney / Dyan</h2>
   <p style="font-size:12px;color:#6b7280;margin-bottom:14px">Colecao Primavera/Verao 2026</p>
 
+  <div class="card" style="background:#f0f4ff;border-color:#003DA5;margin-bottom:14px">
+    <p style="font-size:12px;color:#003DA5;font-weight:600;margin-bottom:6px">Importar pedido completo</p>
+    <p style="font-size:11px;color:#6b7280;margin-bottom:8px">Cole o texto do pedido — produtos, grades e valores sao preenchidos automaticamente</p>
+    <textarea class="inp" id="import-pedido-txt" rows="5" placeholder="Cole aqui o texto completo do pedido Disney..."></textarea>
+    <button class="btn btn-disney btn-sm" style="margin-top:8px" onclick="importarPedidoCompleto()">Importar pedido</button>
+  </div>
+
   <div class="flbl">Lojista</div>
   <select class="inp" id="cli" onchange="selecionarCliente()">
     <option value="">Selecionar cliente...</option>
@@ -257,11 +264,15 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <div>
       <div class="flbl">Cond. pagamento</div>
       <select class="inp" id="cond" onchange="updCond()">
+        <option value="AVISTA">A vista</option>
         <option value="15DD">15 DD</option>
-        <option value="30DD" selected>30 DD</option>
+        <option value="30DD">30 DD</option>
+        <option value="30/60">30/60 DD</option>
+        <option value="30/60/90" selected>30/60/90 DD</option>
+        <option value="30/60/90/120">30/60/90/120 DD</option>
+        <option value="60/90/120">60/90/120 DD</option>
         <option value="45DD">45 DD</option>
         <option value="60DD">60 DD</option>
-        <option value="75DD">75 DD</option>
         <option value="90DD">90 DD</option>
       </select>
     </div>
@@ -969,6 +980,107 @@ function renderGastos() {
 function delGasto(i) { gastos.splice(i,1); salvarDados(); renderGastos(); atualizarHome(); }
 
 atualizarSelectRede();
+
+function parsePedido(txt) {
+  var resultado = { cond:"", entrega:"", itens:[], totalPares:0, totalValor:0 };
+  var condMatch = txt.match(/Cond[\.\s]+Pagto[:\s]+([^\n\r]+)/i);
+  if(condMatch) {
+    var c = condMatch[1].replace(/DIAS/i,"").replace(/Prev[\.\s]+Entrega.*/i,"").trim();
+    resultado.cond = c;
+  }
+  var entMatch = txt.match(/Prev[\.\s]+Entrega[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+  if(entMatch) {
+    var parts = entMatch[1].split("/");
+    resultado.entrega = parts[2]+"-"+parts[1]+"-"+parts[0];
+  }
+  var linhas = txt.split(/\n/);
+  var i = 0;
+  while(i < linhas.length) {
+    var linha = linhas[i].trim();
+    var itemMatch = linha.match(/^(\d{3})\s+([A-Z0-9]+)\s+\d{3}\s+(.+?)\s+(MARVEL|DISNEY|PIXAR)\s+/i);
+    if(itemMatch) {
+      var ref = itemMatch[2];
+      var cor = itemMatch[3].trim();
+      var numLinha = i+1 < linhas.length ? linhas[i+1].trim() : "";
+      var qtdLinha = i+2 < linhas.length ? linhas[i+2].trim() : "";
+      var nums = numLinha.split(/\s+/).map(function(n){ return parseInt(n); }).filter(function(n){ return !isNaN(n)&&n>=15&&n<=45; });
+      var qtds = qtdLinha.split(/\s+/).map(function(n){ return parseInt(n); }).filter(function(n){ return !isNaN(n); });
+      if(nums.length>0 && qtds.length===nums.length) {
+        var gradeObj = {}; var totalPares = 0;
+        for(var j=0;j<nums.length;j++) { if(qtds[j]>0){gradeObj[nums[j]]=qtds[j];totalPares+=qtds[j];} }
+        var unitario = 0;
+        for(var k=i;k<Math.min(i+6,linhas.length);k++) {
+          var um=linhas[k].match(/Unit\.[:\s]+R\$\s*([\d\.,]+)/i);
+          if(um){unitario=parseFloat(um[1].replace(/\./g,"").replace(",","."));break;}
+        }
+        resultado.itens.push({r:ref,cor:cor,ns:nums,qtds:gradeObj,pares:totalPares,unitario:unitario});
+        resultado.totalPares += totalPares;
+      }
+      i+=3; continue;
+    }
+    i++;
+  }
+  var totMatch = txt.match(/Totais[:\s]+R\$\s*([\d\.,]+)/i);
+  if(totMatch) resultado.totalValor = parseFloat(totMatch[1].replace(/\./g,"").replace(",","."));
+  return resultado;
+}
+
+function importarPedidoCompleto() {
+  var txt = document.getElementById("import-pedido-txt").value;
+  if(!txt.trim()) { alert("Cole o texto do pedido primeiro."); return; }
+
+  var r = parsePedido(txt);
+  if(!r.itens.length) { alert("Nao foi possivel identificar produtos no texto. Verifique o formato."); return; }
+
+  // Preencher condicao de pagamento
+  if(r.cond) {
+    var sel = document.getElementById("cond");
+    var condLimpa = r.cond.replace(/\s/g,"").replace(/\/\d{2,3}$/,"");
+    // Tentar encontrar opcao correspondente
+    var found = false;
+    for(var i=0;i<sel.options.length;i++) {
+      if(sel.options[i].value.replace(/DD/i,"").replace(/\s/g,"") === r.cond.replace(/\s/g,"").replace(/DD/gi,"").replace(/DIAS/gi,"").trim()) {
+        sel.value = sel.options[i].value; found = true; break;
+      }
+    }
+    if(!found) {
+      // Adicionar opcao dinamica
+      var opt = document.createElement("option");
+      opt.value = r.cond;
+      opt.textContent = r.cond;
+      sel.appendChild(opt);
+      sel.value = r.cond;
+    }
+    condAtual = sel.value;
+  }
+
+  // Preencher data de entrega
+  if(r.entrega) document.getElementById("entrega").value = r.entrega;
+
+  // Montar itens
+  itens = [];
+  for(var i=0;i<r.itens.length;i++) {
+    var item = r.itens[i];
+    // Encontrar linha no catalogo
+    var prod = null;
+    for(var j=0;j<PRODS.length;j++) { if(PRODS[j].r===item.r){prod=PRODS[j];break;} }
+    var linha = prod ? prod.l : "IMPULSE";
+    var licenca = prod ? prod.n : item.r;
+    itens.push({r:item.r, l:linha, n:licenca, ns:item.ns, qtds:item.qtds, qpad:1, cor:item.cor, unitarioOriginal:item.unitario});
+  }
+
+  document.getElementById("import-pedido-txt").value = "";
+  renderItens();
+  atuResumo();
+
+  // Mostrar resumo importado
+  var msg = "Pedido importado com sucesso!\n\n";
+  msg += r.itens.length + " produtos\n";
+  msg += r.totalPares + " pares\n";
+  msg += "Total: R$ " + r.totalValor.toFixed(2).replace(".",",") + "\n\n";
+  msg += "Confira os itens e clique em Salvar pedido no sistema.";
+  alert(msg);
+}
 </script>
 </body>
 </html>
