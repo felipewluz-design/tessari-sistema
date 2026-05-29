@@ -125,8 +125,15 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <div class="sbox" style="border-left:3px solid #C8102E"><div class="v" id="stat-ped-ferracini">0</div><div class="l">Pedidos Ferracini</div></div>
     <div class="sbox" style="border-left:3px solid #1D9E75"><div class="v" id="stat-total">R$0</div><div class="l">Total vendido</div></div>
     <div class="sbox" style="border-left:3px solid #E8A83E"><div class="v" id="stat-gastos">R$0</div><div class="l">Gastos mes</div></div>
+    <div class="sbox" style="border-left:3px solid #003DA5"><div class="v" id="stat-comissao-disney">R$0</div><div class="l">Comissao Disney</div></div>
+    <div class="sbox" style="border-left:3px solid #C8102E"><div class="v" id="stat-comissao-ferracini">R$0</div><div class="l">Comissao Ferracini</div></div>
+  </div>
+  <div style="background:#0A2463;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+    <span style="color:rgba(255,255,255,.7);font-size:12px">Comissao liquida do mes</span>
+    <span style="color:#fff;font-size:16px;font-weight:700" id="stat-comissao-liquida">R$0</span>
   </div>
   <div class="alrt" id="alrt-clientes"></div>
+  <div class="alrt" id="alrt-preposto" style="display:none;background:#fff0f0;border-color:#C8102E;color:#991B1B"></div>
   <div class="qagrid">
     <button class="qacard" onclick="goTo('disney')">
       <div class="qaicon" style="background:#eef2ff;color:#003DA5">+</div>
@@ -244,8 +251,15 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 
 <!-- DISNEY -->
 <div id="s-disney" class="scr">
-  <h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Pedido Disney / Dyan</h2>
-  <p style="font-size:12px;color:#6b7280;margin-bottom:14px">Colecao Primavera/Verao 2026</p>
+  <h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Novo Pedido</h2>
+  <p style="font-size:12px;color:#6b7280;margin-bottom:14px">Registrar pedido de qualquer marca</p>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button id="btn-marca-disney" onclick="selecionarMarca('disney')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #003DA5;background:#003DA5;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif">Disney / Dyan</button>
+    <button id="btn-marca-ferracini" onclick="selecionarMarca('ferracini')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #e5e7eb;background:#fff;color:#6b7280;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif">Ferracini</button>
+  </div>
+  <div id="marca-info-disney" style="font-size:11px;color:#003DA5;background:#eef2ff;border-radius:6px;padding:6px 10px;margin-bottom:10px">Colecao Primavera/Verao 2026 — Pedido minimo 60 pares</div>
+  <div id="marca-info-ferracini" style="display:none;font-size:11px;color:#C8102E;background:#fef2f2;border-radius:6px;padding:6px 10px;margin-bottom:10px">Ferracini — Registrar pedido feito no tablet</div>
 
   <div class="card" style="background:#f0f4ff;border-color:#003DA5;margin-bottom:14px">
     <p style="font-size:12px;color:#003DA5;font-weight:600;margin-bottom:6px">Importar pedido completo</p>
@@ -287,9 +301,31 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 
   <div style="height:1px;background:#e5e7eb;margin:16px 0"></div>
   <div class="secao">Produtos selecionados</div>
-  <div id="plist"><p style="text-align:center;color:#6b7280;font-size:13px;padding:16px 0">Nenhum produto adicionado</p></div>
-  <button class="btn btn-dash" onclick="openModal()">+ Adicionar produto</button>
-  <div class="minalert" id="minalert" style="background:#fff3cd;border-color:#ffc107;color:#856404;margin-top:8px">Pedido minimo: <strong id="pcount">0 pares</strong> / 60 pares minimos</div>
+
+  <div id="plist-disney">
+    <div id="plist"><p style="text-align:center;color:#6b7280;font-size:13px;padding:16px 0">Nenhum produto adicionado</p></div>
+    <button class="btn btn-dash" onclick="openModal()">+ Adicionar produto</button>
+    <div class="minalert" id="minalert" style="background:#fff3cd;border-color:#ffc107;color:#856404;margin-top:8px">Pedido minimo: <strong id="pcount">0 pares</strong> / 60 pares minimos</div>
+  </div>
+
+  <div id="plist-ferracini" style="display:none">
+    <div class="card" style="background:#fff8f8;border-color:#C8102E">
+      <p style="font-size:12px;color:#C8102E;font-weight:600;margin-bottom:6px">Registrar pedido Ferracini</p>
+      <p style="font-size:11px;color:#6b7280;margin-bottom:8px">O pedido ja foi lancado no tablet. Registre aqui os dados para controle de comissao.</p>
+      <div class="flbl">Numero do pedido</div>
+      <input type="text" class="inp" id="fer-num" placeholder="Ex: FER00123" />
+      <div class="row2" style="margin-top:0">
+        <div><div class="flbl">Total de pares</div><input type="number" class="inp" id="fer-pares" placeholder="0" /></div>
+        <div><div class="flbl">Valor total (R$)</div><input type="number" class="inp" id="fer-valor" placeholder="0,00" step="0.01" /></div>
+      </div>
+      <div class="flbl">Tipo de tabela</div>
+      <select class="inp" id="fer-tabela">
+        <option value="normal">Normal — 6%</option>
+        <option value="gervase">Gervase — 4%</option>
+        <option value="promocao">Promocao fabrica — 4%</option>
+      </select>
+    </div>
+  </div>
 
   <div class="rsm">
     <h3>Resumo</h3>
@@ -299,7 +335,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   </div>
 
   <button class="btn btn-disney" style="margin-top:12px" onclick="gerar()">Gerar pedido formatado</button>
-  <button class="btn btn-green" style="margin-top:6px" onclick="salvarPedido()">Salvar pedido no sistema</button>
+  <button class="btn btn-green" style="margin-top:6px" id="btn-salvar-pedido" onclick="salvarPedido()">Salvar pedido no sistema</button>
 
   <div class="pout" id="pedout">
     <div class="pohd"><h4>Pedido gerado</h4><button class="cpbtn" onclick="copiar()">Copiar</button></div>
@@ -346,7 +382,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 <div class="bnav">
   <button id="nb-home" class="on" onclick="goTo('home')">Casa<br>Inicio</button>
   <button id="nb-clientes" onclick="goTo('clientes')">Pessoas<br>Clientes</button>
-  <button id="nb-disney" onclick="goTo('disney')">Doc<br>Disney</button>
+  <button id="nb-disney" onclick="goTo('disney')">+<br>Pedidos</button>
   <button id="nb-gastos" onclick="goTo('gastos')">Carteira<br>Gastos</button>
 </div>
 
@@ -358,7 +394,12 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+var SUPABASE_URL = "https://xroedpxscpwikfzmjxio.supabase.co";
+var SUPABASE_KEY = "sb_publishable_rJm-XhVdRxY0bCfd5PqERg_QDMzQMIL";
+var db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 var PRECOS = {
   IMPULSE:{g:[20,27],p:{"15DD":57.36,"30DD":57.95,"45DD":58.53,"60DD":59.08,"75DD":59.64,"90DD":60.17}},
   SPARK:{g:[20,27],p:{"15DD":57.36,"30DD":57.95,"45DD":58.53,"60DD":59.08,"75DD":59.64,"90DD":60.17}},
@@ -415,7 +456,275 @@ var PRODS = [
   {r:"DST03MG",l:"VIBE",n:"STITCH"},{r:"DMO03MG",l:"VIBE",n:"MOANA"},{r:"DMN04MG",l:"VIBE",n:"MINNIE"},{r:"DMN05MG",l:"VIBE",n:"MINNIE"}
 ];
 
-// STATE
+// ========== SUPABASE DB ==========
+async function dbCarregarClientes() {
+  try {
+    var res = await db.from("clientes").select("*, redes(nome)").order("nome");
+    if(res.data) {
+      clientes = res.data.map(function(c) {
+        return {
+          id: c.id,
+          nome: c.nome,
+          cnpj: c.cnpj||"",
+          endereco: c.endereco||"",
+          cidade: c.cidade||"",
+          cep: c.cep||"",
+          tel: c.telefone||"",
+          email: c.email||"",
+          marca: c.marca||"disney",
+          rede: c.redes ? c.redes.nome : "",
+          rede_id: c.rede_id,
+          ciclo: c.ciclo_dias||90,
+          obs: c.observacoes||"",
+          ultimoPedido: c.ultimo_pedido_data,
+          ultimoPedidoValor: c.ultimo_pedido_valor
+        };
+      });
+    }
+  } catch(e) { console.log("Erro carregar clientes:", e); }
+}
+
+async function dbSalvarCliente(cliente) {
+  try {
+    var dados = {
+      nome: cliente.nome,
+      cnpj: cliente.cnpj,
+      endereco: cliente.endereco,
+      cidade: cliente.cidade,
+      cep: cliente.cep,
+      telefone: cliente.tel,
+      email: cliente.email,
+      marca: cliente.marca,
+      rede_id: cliente.rede_id || null,
+      ciclo_dias: parseInt(cliente.ciclo)||90,
+      observacoes: cliente.obs,
+      ultimo_pedido_data: cliente.ultimoPedido || null,
+      ultimo_pedido_valor: cliente.ultimoPedidoValor || null
+    };
+    var res;
+    if(cliente.id && typeof cliente.id === "number" && cliente.id > 1000000000000) {
+      // ID local (timestamp) — inserir novo
+      res = await db.from("clientes").insert(dados).select().single();
+    } else if(cliente.id) {
+      res = await db.from("clientes").update(dados).eq("id", cliente.id).select().single();
+    } else {
+      res = await db.from("clientes").insert(dados).select().single();
+    }
+    if(res.data) return res.data.id;
+    return null;
+  } catch(e) { console.log("Erro salvar cliente:", e); return null; }
+}
+
+async function dbCarregarRedes() {
+  try {
+    var res = await db.from("redes").select("*").order("nome");
+    if(res.data) redes = res.data.map(function(r){ return {id:r.id, nome:r.nome}; });
+  } catch(e) { console.log("Erro carregar redes:", e); }
+}
+
+async function dbSalvarRede(nome) {
+  try {
+    var res = await db.from("redes").insert({nome:nome}).select().single();
+    if(res.data) return res.data;
+    return null;
+  } catch(e) { console.log("Erro salvar rede:", e); return null; }
+}
+
+async function dbCarregarPedidos() {
+  try {
+    var res = await db.from("pedidos").select("*").order("data_pedido", {ascending:false});
+    if(res.data) {
+      pedidos = res.data.map(function(p) {
+        return {
+          id: p.id,
+          clienteId: p.cliente_id,
+          marca: p.marca,
+          numeroPedido: p.numero_pedido,
+          data: p.data_pedido,
+          cond: p.condicao_pagamento,
+          entrega: p.data_entrega_prevista,
+          total: parseFloat(p.valor_total)||0,
+          pares: p.total_pares||0,
+          prontaEntrega: p.pronta_entrega,
+          tipoTabela: p.tipo_tabela,
+          percComissao: p.percentual_comissao,
+          valorComissao: p.valor_comissao,
+          obs: p.observacoes,
+          itens: p.itens||[]
+        };
+      });
+    }
+  } catch(e) { console.log("Erro carregar pedidos:", e); }
+}
+
+async function dbSalvarPedido(ped) {
+  try {
+    var dados = {
+      cliente_id: ped.clienteId,
+      marca: ped.marca,
+      numero_pedido: ped.numeroPedido||null,
+      data_pedido: ped.data,
+      data_entrega_prevista: ped.entrega||null,
+      condicao_pagamento: ped.cond,
+      total_pares: ped.pares,
+      valor_total: ped.total,
+      pronta_entrega: ped.prontaEntrega||false,
+      tipo_tabela: ped.tipoTabela||"varejo",
+      percentual_comissao: ped.percComissao||null,
+      valor_comissao: ped.valorComissao||null,
+      observacoes: ped.obs||null,
+      itens: ped.itens||[]
+    };
+    var res = await db.from("pedidos").insert(dados).select().single();
+    if(res.data) {
+      await dbGerarParcelas(res.data.id, ped);
+      await db.from("clientes").update({
+        ultimo_pedido_data: ped.data,
+        ultimo_pedido_valor: ped.total
+      }).eq("id", ped.clienteId);
+      // Se for preposto, registrar repasse pendente
+      if(ped.isPreposto && ped.valorComissaoPreposto > 0) {
+        var mesRef = new Date().toISOString().slice(0,7);
+        await db.from("repasses_preposto").insert({
+          mes_referencia: mesRef,
+          valor_total: ped.valorComissaoPreposto,
+          status: "pendente",
+          observacoes: "Pedido #"+res.data.id+" - "+ped.obs
+        });
+      }
+      return res.data.id;
+    }
+    return null;
+  } catch(e) { console.log("Erro salvar pedido:", e); return null; }
+}
+
+async function dbGerarParcelas(pedidoId, ped) {
+  try {
+    var partes = ped.cond ? ped.cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/") : ["30"];
+    var totalParcelas = partes.length;
+    var valorParcela = ped.total / totalParcelas;
+    var percComissao = ped.percComissao || 10;
+    var percPreposto = ped.isPreposto ? percComissao * 0.5 : 0;
+    var percLiquido = percComissao - percPreposto;
+    var parcelas = [];
+    var dataBase = new Date(ped.data);
+    for(var i=0;i<partes.length;i++) {
+      var dias = parseInt(partes[i])||30;
+      var dataPrev = new Date(dataBase.getTime() + dias*86400000);
+      var valComissao = valorParcela * percComissao / 100;
+      var valPreposto = valorParcela * percPreposto / 100;
+      var valLiquido = valorParcela * percLiquido / 100;
+      parcelas.push({
+        pedido_id: pedidoId,
+        numero_parcela: i+1,
+        valor_parcela: Math.round(valorParcela*100)/100,
+        valor_comissao: Math.round(valComissao*100)/100,
+        valor_comissao_preposto: Math.round(valPreposto*100)/100,
+        valor_comissao_liquida: Math.round(valLiquido*100)/100,
+        data_prevista: dataPrev.toISOString().split("T")[0],
+        status: "pendente"
+      });
+    }
+    await db.from("parcelas_comissao").insert(parcelas);
+  } catch(e) { console.log("Erro gerar parcelas:", e); }
+}
+
+async function dbCarregarGastos() {
+  try {
+    var hoje = new Date().toISOString().split("T")[0];
+    var res = await db.from("gastos").select("*").eq("data_gasto", hoje).order("created_at");
+    if(res.data) {
+      gastos = res.data.map(function(g) {
+        return {id:g.id, cat:g.categoria, ob:g.descricao||"", v:parseFloat(g.valor), data:g.data_gasto, h:new Date(g.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};
+      });
+    }
+  } catch(e) { console.log("Erro carregar gastos:", e); }
+}
+
+async function dbSalvarGasto(gasto) {
+  try {
+    var res = await db.from("gastos").insert({
+      categoria: gasto.cat,
+      descricao: gasto.ob||null,
+      valor: gasto.v,
+      data_gasto: new Date().toISOString().split("T")[0]
+    }).select().single();
+    if(res.data) return res.data.id;
+    return null;
+  } catch(e) { console.log("Erro salvar gasto:", e); return null; }
+}
+
+async function dbDeletarGasto(id) {
+  try {
+    await db.from("gastos").delete().eq("id", id);
+  } catch(e) { console.log("Erro deletar gasto:", e); }
+}
+
+async function dbCarregarEstatisticas() {
+  try {
+    var mes = new Date().getMonth()+1;
+    var ano = new Date().getFullYear();
+    var inicioMes = ano+"-"+String(mes).padStart(2,"0")+"-01";
+    var fimMes = ano+"-"+String(mes).padStart(2,"0")+"-31";
+    var resPed = await db.from("pedidos").select("marca,valor_total,valor_comissao").gte("data_pedido",inicioMes).lte("data_pedido",fimMes);
+    var resGas = await db.from("gastos").select("valor").gte("data_gasto",inicioMes).lte("data_gasto",fimMes);
+    var resParcelas = await db.from("parcelas_comissao")
+      .select("valor_comissao_liquida,status,data_prevista,pedidos(marca)")
+      .eq("status","pendente")
+      .gte("data_prevista",inicioMes)
+      .lte("data_prevista",fimMes);
+    var totalDisney=0,totalFerracini=0,totalGastos=0,pedDisney=0,pedFerracini=0;
+    var comDisney=0,comFerracini=0;
+    if(resPed.data) {
+      resPed.data.forEach(function(p){
+        if(p.marca==="disney"){totalDisney+=parseFloat(p.valor_total)||0;pedDisney++;comDisney+=parseFloat(p.valor_comissao)||0;}
+        else{totalFerracini+=parseFloat(p.valor_total)||0;pedFerracini++;comFerracini+=parseFloat(p.valor_comissao)||0;}
+      });
+    }
+    if(resGas.data) resGas.data.forEach(function(g){totalGastos+=parseFloat(g.valor)||0;});
+    // Comissao liquida a receber no mes (parcelas pendentes)
+    var comLiquidaMes = 0;
+    var comLiquidaDisney = 0;
+    var comLiquidaFerracini = 0;
+    if(resParcelas.data) {
+      resParcelas.data.forEach(function(p){
+        var v = parseFloat(p.valor_comissao_liquida)||0;
+        comLiquidaMes += v;
+        if(p.pedidos && p.pedidos.marca==="disney") comLiquidaDisney+=v;
+        else comLiquidaFerracini+=v;
+      });
+    }
+    document.getElementById("stat-ped-disney").textContent=pedDisney;
+    document.getElementById("stat-ped-ferracini").textContent=pedFerracini;
+    document.getElementById("stat-total").textContent="R$"+Math.round(totalDisney+totalFerracini);
+    document.getElementById("stat-gastos").textContent="R$"+Math.round(totalGastos);
+    document.getElementById("stat-comissao-disney").textContent="R$"+Math.round(comLiquidaDisney||comDisney);
+    document.getElementById("stat-comissao-ferracini").textContent="R$"+Math.round(comLiquidaFerracini||comFerracini);
+    document.getElementById("stat-comissao-liquida").textContent="R$"+Math.round((comLiquidaMes||(comDisney+comFerracini))-totalGastos);
+  } catch(e) { console.log("Erro estatisticas:", e); }
+}
+
+async function dbCarregarComissoes() {
+  try {
+    var res = await db.from("parcelas_comissao").select("valor_comissao_liquida,status,data_prevista").eq("status","pendente");
+    if(res.data) {
+      var hoje = new Date();
+      var mesAtual = hoje.getMonth();
+      var anoAtual = hoje.getFullYear();
+      var aReceberMes = 0;
+      res.data.forEach(function(p){
+        var d = new Date(p.data_prevista);
+        if(d.getMonth()===mesAtual && d.getFullYear()===anoAtual) {
+          aReceberMes += parseFloat(p.valor_comissao_liquida)||0;
+        }
+      });
+      var el = document.getElementById("stat-comissao");
+      if(el) el.textContent = "R$"+Math.round(aReceberMes);
+    }
+  } catch(e) { console.log("Erro comissoes:", e); }
+}
+
+// ========== STATE ==========
 var clientes = [];
 var redes = [];
 var pedidos = [];
@@ -424,6 +733,30 @@ var catAtual = "combustivel";
 var gastos = [];
 var condAtual = "30DD";
 var telaAnterior = "home";
+var marcaAtual = "disney";
+
+function selecionarMarca(marca) {
+  marcaAtual = marca;
+  var btnD = document.getElementById("btn-marca-disney");
+  var btnF = document.getElementById("btn-marca-ferracini");
+  var infoD = document.getElementById("marca-info-disney");
+  var infoF = document.getElementById("marca-info-ferracini");
+  var listD = document.getElementById("plist-disney");
+  var listF = document.getElementById("plist-ferracini");
+  if(marca === "disney") {
+    btnD.style.background="#003DA5"; btnD.style.color="#fff"; btnD.style.borderColor="#003DA5";
+    btnF.style.background="#fff"; btnF.style.color="#6b7280"; btnF.style.borderColor="#e5e7eb";
+    infoD.style.display="block"; infoF.style.display="none";
+    if(listD) listD.style.display="block";
+    if(listF) listF.style.display="none";
+  } else {
+    btnF.style.background="#C8102E"; btnF.style.color="#fff"; btnF.style.borderColor="#C8102E";
+    btnD.style.background="#fff"; btnD.style.color="#6b7280"; btnD.style.borderColor="#e5e7eb";
+    infoF.style.display="block"; infoD.style.display="none";
+    if(listD) listD.style.display="none";
+    if(listF) listF.style.display="block";
+  }
+}
 
 // Carregar dados salvos
 function carregarDados() {
@@ -449,13 +782,24 @@ function salvarDados() {
 }
 
 // INIT
-document.getElementById("hdate").textContent = new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
-document.getElementById("entrega").value = new Date(Date.now()+86400000*60).toISOString().split("T")[0];
-carregarDados();
-atualizarHome();
-renderClientes("todos");
-renderGastos();
-popularSelectClientes();
+// ========== INIT ==========
+async function inicializar() {
+  document.getElementById("hdate").textContent = new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
+  document.getElementById("entrega").value = new Date(Date.now()+86400000*60).toISOString().split("T")[0];
+  // Carregar dados do Supabase
+  await dbCarregarRedes();
+  await dbCarregarClientes();
+  await dbCarregarPedidos();
+  await dbCarregarGastos();
+  atualizarHome();
+  renderClientes("todos");
+  renderGastos();
+  popularSelectClientes();
+  atualizarSelectRede();
+  await dbCarregarEstatisticas();
+  await dbCarregarComissoes();
+}
+inicializar();
 
 function getStatusCliente(c) {
   if(!c.ultimoPedido) return "vermelho";
@@ -481,25 +825,30 @@ function atualizarHome() {
   } else {
     alrt.style.display = "none";
   }
-  var totalMes = 0;
-  var mes = new Date().getMonth();
-  var ano = new Date().getFullYear();
-  var pedDisney = 0;
-  for(var i=0;i<pedidos.length;i++) {
-    var d = new Date(pedidos[i].data);
-    if(d.getMonth()===mes && d.getFullYear()===ano) {
-      totalMes += pedidos[i].total || 0;
-      if(pedidos[i].marca === "disney") pedDisney++;
+  // Verificar repasse preposto — alerta nos dias 8, 9 e 10
+  var diaHoje = new Date().getDate();
+  var alrtPre = document.getElementById("alrt-preposto");
+  if(diaHoje >= 8 && diaHoje <= 10) {
+    dbVerificarRepasse();
+  } else {
+    if(alrtPre) alrtPre.style.display = "none";
+  }
+}
+
+async function dbVerificarRepasse() {
+  try {
+    var mesRef = new Date().toISOString().slice(0,7);
+    var res = await db.from("repasses_preposto").select("valor_total").eq("status","pendente").eq("mes_referencia",mesRef);
+    var alrtPre = document.getElementById("alrt-preposto");
+    if(res.data && res.data.length > 0) {
+      var total = 0;
+      res.data.forEach(function(r){total+=parseFloat(r.valor_total)||0;});
+      alrtPre.textContent = "Repasse preposto vence dia 10 — R$ "+total.toFixed(2).replace(".",",")+" pendente";
+      alrtPre.style.display = "block";
+    } else {
+      alrtPre.style.display = "none";
     }
-  }
-  document.getElementById("stat-ped-disney").textContent = pedDisney;
-  document.getElementById("stat-total").textContent = "R$" + Math.round(totalMes);
-  var totalGastos = 0;
-  for(var i=0;i<gastos.length;i++) {
-    var d = new Date(gastos[i].data || Date.now());
-    if(d.getMonth()===mes && d.getFullYear()===ano) totalGastos += gastos[i].v;
-  }
-  document.getElementById("stat-gastos").textContent = "R$" + Math.round(totalGastos);
+  } catch(e) {}
 }
 
 function goTo(id) {
@@ -682,14 +1031,16 @@ function importarPedido() {
   alert("Dados extraidos! Confira e complete o que faltar.");
 }
 
-function novaRede() {
+async function novaRede() {
   var nome = prompt("Nome da rede:");
   if(!nome || !nome.trim()) return;
-  redes.push(nome.trim());
-  salvarDados();
-  atualizarSelectRede();
-  var sel = document.getElementById("nc-rede");
-  sel.value = nome.trim();
+  var result = await dbSalvarRede(nome.trim());
+  if(result) {
+    redes.push({id:result.id, nome:result.nome});
+    atualizarSelectRede();
+    var sel = document.getElementById("nc-rede");
+    sel.value = result.nome;
+  }
 }
 
 function atualizarSelectRede() {
@@ -697,23 +1048,22 @@ function atualizarSelectRede() {
   sel.innerHTML = "<option value=''>Nao - loja independente</option>";
   for(var i=0;i<redes.length;i++) {
     var opt = document.createElement("option");
-    opt.value = redes[i];
-    opt.textContent = redes[i];
+    opt.value = redes[i].nome || redes[i];
+    opt.textContent = redes[i].nome || redes[i];
     sel.appendChild(opt);
   }
 }
 
-function salvarCliente() {
+async function salvarCliente() {
   var nome = document.getElementById("nc-nome").value.trim();
   var cnpj = document.getElementById("nc-cnpj").value.trim();
   if(!nome) { alert("Informe o nome do cliente."); return; }
-  // Verificar se ja existe
-  var existente = null;
-  for(var i=0;i<clientes.length;i++) {
-    if(cnpj && clientes[i].cnpj === cnpj) { existente = i; break; }
+  var redeNome = document.getElementById("nc-rede").value;
+  var redeId = null;
+  if(redeNome) {
+    for(var i=0;i<redes.length;i++) { if(redes[i].nome===redeNome){redeId=redes[i].id;break;} }
   }
   var cliente = {
-    id: existente !== null ? clientes[existente].id : Date.now(),
     nome: nome,
     cnpj: cnpj,
     endereco: document.getElementById("nc-endereco").value.trim(),
@@ -722,30 +1072,35 @@ function salvarCliente() {
     tel: document.getElementById("nc-tel").value.trim(),
     email: document.getElementById("nc-email").value.trim(),
     marca: document.getElementById("nc-marca").value,
-    rede: document.getElementById("nc-rede").value,
+    rede: redeNome,
+    rede_id: redeId,
     ciclo: document.getElementById("nc-ciclo").value,
-    obs: document.getElementById("nc-obs").value.trim(),
-    dataCadastro: existente !== null ? clientes[existente].dataCadastro : new Date().toISOString(),
-    ultimoPedido: existente !== null ? clientes[existente].ultimoPedido : null,
-    ultimoPedidoValor: existente !== null ? clientes[existente].ultimoPedidoValor : null
+    obs: document.getElementById("nc-obs").value.trim()
   };
-  if(existente !== null) clientes[existente] = cliente;
-  else clientes.push(cliente);
-  salvarDados();
-  popularSelectClientes();
-  renderClientes("todos");
-  atualizarHome();
-  // Limpar form
-  document.getElementById("nc-nome").value = "";
-  document.getElementById("nc-cnpj").value = "";
-  document.getElementById("nc-endereco").value = "";
-  document.getElementById("nc-cidade").value = "";
-  document.getElementById("nc-cep").value = "";
-  document.getElementById("nc-tel").value = "";
-  document.getElementById("nc-email").value = "";
-  document.getElementById("nc-obs").value = "";
-  alert("Cliente salvo!");
-  goTo("clientes");
+  var btn = document.querySelector("#s-novo-cliente .btn-green");
+  btn.textContent = "Salvando...";
+  btn.disabled = true;
+  var id = await dbSalvarCliente(cliente);
+  if(id) {
+    await dbCarregarClientes();
+    popularSelectClientes();
+    renderClientes("todos");
+    atualizarHome();
+    document.getElementById("nc-nome").value="";
+    document.getElementById("nc-cnpj").value="";
+    document.getElementById("nc-endereco").value="";
+    document.getElementById("nc-cidade").value="";
+    document.getElementById("nc-cep").value="";
+    document.getElementById("nc-tel").value="";
+    document.getElementById("nc-email").value="";
+    document.getElementById("nc-obs").value="";
+    alert("Cliente salvo!");
+    goTo("clientes");
+  } else {
+    alert("Erro ao salvar. Tente novamente.");
+  }
+  btn.textContent = "Salvar cliente";
+  btn.disabled = false;
 }
 
 // DISNEY
@@ -865,45 +1220,81 @@ function atuResumo() {
   else{ma.style.background="#fff3cd";ma.style.borderColor="#ffc107";ma.style.color="#856404";}
 }
 
-function salvarPedido() {
+async function salvarPedido() {
   var cliId = parseInt(document.getElementById("cli").value);
   if(!cliId) { alert("Selecione o cliente."); return; }
-  var tp=0,tv=0;
-  for(var i=0;i<itens.length;i++) {
-    var item=itens[i]; var pr=getPreco(item.l, item);
-    for(var j=0;j<item.ns.length;j++) { var q=item.qtds[item.ns[j]]||0; tp+=q; tv+=q*pr; }
+  var tp=0, tv=0, tipoTabela="varejo", percComissao=10;
+  if(marcaAtual === "disney") {
+    for(var i=0;i<itens.length;i++) {
+      var item=itens[i]; var pr=getPreco(item.l,item);
+      for(var j=0;j<item.ns.length;j++){var q=item.qtds[item.ns[j]]||0;tp+=q;tv+=q*pr;}
+    }
+    if(tp===0){alert("Adicione pelo menos um produto.");return;}
+    percComissao = 10;
+  } else {
+    tp = parseInt(document.getElementById("fer-pares").value)||0;
+    tv = parseFloat(document.getElementById("fer-valor").value)||0;
+    if(tv===0){alert("Informe o valor total do pedido.");return;}
+    var tabFer = document.getElementById("fer-tabela").value;
+    percComissao = tabFer==="normal" ? 6 : 4;
+    tipoTabela = tabFer;
   }
-  if(tp===0) { alert("Adicione pelo menos um produto."); return; }
+  var obs = document.getElementById("obs").value;
+  var isPreposto = obs.toLowerCase().indexOf("preposto") >= 0;
+  var percPreposto = 0;
+  var percElias = percComissao;
+  if(isPreposto) {
+    // Preposto recebe 50% da comissao
+    percPreposto = percComissao * 0.5;
+    percElias = percComissao * 0.5;
+    // Adicionar indicacao visual na obs se nao tiver
+    if(obs.toLowerCase() === "preposto") obs = "Preposto — Meio Oeste SC";
+  }
   var ped = {
-    id: Date.now(),
     clienteId: cliId,
-    marca: "disney",
+    marca: marcaAtual,
+    numeroPedido: marcaAtual==="ferracini" ? document.getElementById("fer-num").value : null,
     data: new Date().toISOString(),
     cond: document.getElementById("cond").value,
-    entrega: document.getElementById("entrega").value,
-    obs: document.getElementById("obs").value,
+    entrega: document.getElementById("entrega").value||null,
+    obs: obs,
     total: tv,
     pares: tp,
-    itens: JSON.parse(JSON.stringify(itens))
+    tipoTabela: tipoTabela,
+    percComissao: percComissao,
+    valorComissao: tv*percComissao/100,
+    isPreposto: isPreposto,
+    percPreposto: percPreposto,
+    percElias: percElias,
+    valorComissaoPreposto: isPreposto ? tv*percPreposto/100 : 0,
+    valorComissaoLiquida: tv*percElias/100,
+    itens: marcaAtual==="disney" ? JSON.parse(JSON.stringify(itens)) : []
   };
-  pedidos.push(ped);
-  // Atualizar ultimo pedido do cliente
-  for(var i=0;i<clientes.length;i++) {
-    if(clientes[i].id===cliId) {
-      clientes[i].ultimoPedido = ped.data;
-      clientes[i].ultimoPedidoValor = tv;
-      break;
+  var btn = document.getElementById("btn-salvar-pedido");
+  if(btn){btn.textContent="Salvando...";btn.disabled=true;}
+  var id = await dbSalvarPedido(ped);
+  if(id) {
+    await dbCarregarPedidos();
+    await dbCarregarClientes();
+    await dbCarregarEstatisticas();
+    popularSelectClientes();
+    renderClientes("todos");
+    atualizarHome();
+    itens=[];
+    renderItens();
+    atuResumo();
+    document.getElementById("pedout").classList.remove("on");
+    if(marcaAtual==="ferracini"){
+      document.getElementById("fer-num").value="";
+      document.getElementById("fer-pares").value="";
+      document.getElementById("fer-valor").value="";
     }
+    alert("Pedido salvo com sucesso!");
+    goTo("clientes");
+  } else {
+    alert("Erro ao salvar. Tente novamente.");
   }
-  salvarDados();
-  atualizarHome();
-  renderClientes("todos");
-  itens = [];
-  renderItens();
-  atuResumo();
-  document.getElementById("pedout").classList.remove("on");
-  alert("Pedido salvo com sucesso!");
-  goTo("clientes");
+  if(btn){btn.textContent="Salvar pedido no sistema";btn.disabled=false;}
 }
 
 function gerar() {
@@ -948,39 +1339,40 @@ function copiar() {
 function selCat(btn,cat) { var b=document.querySelectorAll(".cbt"); for(var i=0;i<b.length;i++) b[i].classList.remove("on"); btn.classList.add("on"); catAtual=cat; }
 var catN={combustivel:"Combustivel",alimentacao:"Alimentacao",pedagio:"Pedagio",hospedagem:"Hospedagem",estacionamento:"Estacionamento",outros:"Outros"};
 
-function addGasto() {
+async function addGasto() {
   var v=parseFloat(document.getElementById("gval").value);
   if(!v||v<=0){alert("Informe um valor valido.");return;}
   var ob=document.getElementById("gobs").value;
-  gastos.push({cat:catAtual,ob:ob,v:v,data:new Date().toISOString(),h:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})});
+  var gasto={cat:catAtual,ob:ob,v:v,h:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};
+  var id = await dbSalvarGasto(gasto);
+  if(id){gasto.id=id;gastos.push(gasto);}
   document.getElementById("gval").value="";
   document.getElementById("gobs").value="";
-  salvarDados();
   renderGastos();
-  atualizarHome();
+  await dbCarregarEstatisticas();
 }
 
 function renderGastos() {
-  var hoje = new Date().toDateString();
-  var gastosHoje = [];
-  for(var i=0;i<gastos.length;i++) {
-    if(new Date(gastos[i].data||Date.now()).toDateString()===hoje) gastosHoje.push({g:gastos[i],i:i});
-  }
   var el=document.getElementById("ghist");
-  if(!gastosHoje.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:16px 0'>Nenhum gasto registrado</p>";document.getElementById("gtotal").style.display="none";return;}
+  if(!gastos.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:16px 0'>Nenhum gasto registrado</p>";document.getElementById("gtotal").style.display="none";return;}
   var html="";
-  for(var i=0;i<gastosHoje.length;i++) {
-    var g=gastosHoje[i].g; var idx=gastosHoje[i].i;
-    html+="<div class='gi'><div><div style='font-size:13px;font-weight:600'>"+catN[g.cat]+"</div><div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div><div style='display:flex;align-items:center;gap:8px'><span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span><button onclick='delGasto("+idx+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px;line-height:1'>x</button></div></div>";
+  for(var i=0;i<gastos.length;i++) {
+    var g=gastos[i];
+    html+="<div class='gi'><div><div style='font-size:13px;font-weight:600'>"+catN[g.cat]+"</div><div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div><div style='display:flex;align-items:center;gap:8px'><span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span><button onclick='delGasto("+g.id+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px;line-height:1'>x</button></div></div>";
   }
   el.innerHTML=html;
-  var tot=0; for(var i=0;i<gastosHoje.length;i++) tot+=gastosHoje[i].g.v;
+  var tot=0; for(var i=0;i<gastos.length;i++) tot+=gastos[i].v;
   document.getElementById("gttxt").textContent="R$ "+tot.toFixed(2).replace(".",",");
   document.getElementById("gtotal").style.display="flex";
   document.getElementById("ghoje").textContent="R$"+Math.round(tot);
 }
 
-function delGasto(i) { gastos.splice(i,1); salvarDados(); renderGastos(); atualizarHome(); }
+async function delGasto(id) {
+  await dbDeletarGasto(id);
+  gastos=gastos.filter(function(g){return g.id!==id;});
+  renderGastos();
+  await dbCarregarEstatisticas();
+}
 
 atualizarSelectRede();
 
