@@ -1221,50 +1221,52 @@ function importarPedido() {
     // Marca
     document.getElementById("nc-marca").value = "disney";
   } else {
-    // Formato Ferracini — nome na primeira linha de conteudo
-    // Nome geralmente e a primeira linha que nao e cabecalho
-    var palavrasIgnorar = ["CIDADE","CONDICAO","REPRESENTANTE","BAIRRO","CLIENTE","ENDERECO","CNPJ","TRANSPORTADORA","IMAGEM"];
+    // Formato Ferracini
+    // Nome — primeira linha relevante que nao seja cabecalho
+    var palavrasIgnorar = ["CIDADE","CONDICAO","REPRESENTANTE","BAIRRO","CLIENTE","ENDERECO","CNPJ","TRANSPORTADORA","IMAGEM","REGISTRO","PAGAMENTO","FRETE","REDESPACHO","ESTADO","Nome:","CODIGO","CONTATO","FAX"];
     for(var i=0;i<linhas.length;i++) {
       var l = linhas[i];
       var ignorar = false;
       for(var j=0;j<palavrasIgnorar.length;j++) {
-        if(l.toUpperCase().indexOf(palavrasIgnorar[j])>=0) { ignorar=true; break; }
+        if(l.toUpperCase().indexOf(palavrasIgnorar[j].toUpperCase())>=0) { ignorar=true; break; }
       }
-      if(!ignorar && l.length > 5 && l.match(/^[A-Z]/) && !l.match(/^\d/) && !l.match(/@/)) {
-        document.getElementById("nc-nome").value = l;
+      if(!ignorar && l.length > 5 && l.match(/^[A-Z]/) && !l.match(/^\d/) && !l.match(/@/) && !l.match(/LTDA|ME|EIRELI/i) === false) {
+        // Limpar "Nome:" se vier no inicio
+        var nomeF = l.replace(/^Nome[:\s]*/i,"").trim();
+        document.getElementById("nc-nome").value = nomeF;
         break;
       }
     }
-    // Endereco — linha com PRACA, RUA, AV, etc
+    // Endereco — PRACA, RUA, AV, ALAMEDA
     for(var i=0;i<linhas.length;i++) {
-      if(linhas[i].match(/^(PRACA|RUA|AV|R\.?\s|TRAV|ROD)/i) && linhas[i].length>5) {
-        document.getElementById("nc-endereco").value = linhas[i];
+      var l = linhas[i];
+      if(l.match(/^(PRACA|PRAC|RUA|AV\b|AVENIDA|ALAMEDA|TRAV|ROD|AL\b)/i) && l.length>5) {
+        document.getElementById("nc-endereco").value = l;
         break;
       }
     }
-    // Cidade — linha que contenha SC e seja nome de cidade
+    // Cidade — procurar linha que seja so cidade (linha antes ou depois de SC ou CEP)
     for(var i=0;i<linhas.length;i++) {
-      if(linhas[i].match(/^[A-Z]/) && linhas[i].indexOf(" SC")<0 && linhas[i].indexOf("SC")<0 && linhas[i].length>3 && linhas[i].length<40) {
-        // Verificar se linha seguinte tem SC ou CEP
+      var l = linhas[i];
+      // Linha que seja so "SAO FRANCISCO DO SUL" ou similar — nome de cidade pura
+      if(l.match(/^[A-Z][A-Z\s]+$/) && l.length>3 && l.length<50 && !l.match(/LTDA|SC$|FERRACINI|TESSARI|TROCA|TRANSPORTES|EMITENTE/i)) {
         var prox = linhas[i+1]||"";
-        if(prox==="SC" || prox.match(/^SC\s*$/) || prox.match(/^\d{5}/)) {
-          document.getElementById("nc-cidade").value = linhas[i];
+        var ant = linhas[i-1]||"";
+        if(prox.match(/^SC$|^\d{5}/) || ant.match(/^SC$|^\d{5}/) || l.match(/SAO FRANCISCO|JOINVILLE|CHAPECO|BLUMENAU|ITAJAI|FLORIANOPOLIS|LAGES|CACADOR|JARAGUA|BRUSQUE|BALNEARIO|CRICIUMA/i)) {
+          document.getElementById("nc-cidade").value = l;
           break;
         }
       }
-      // Ou cidade na mesma linha com SC
-      if(linhas[i].match(/SAO FRANCISCO|JOINVILLE|CHAPECO|BLUMENAU|ITAJAI|FLORIANOPOLIS|LAGES|CACADOR|JARAGUA/i)) {
-        document.getElementById("nc-cidade").value = linhas[i].replace(/SC/,"").trim();
-        break;
-      }
     }
-    // CEP — 8 digitos seguidos ou com hifen
-    var cepMatch = txt.match(/\b(\d{8})\b/) || txt.match(/\b(\d{5}[\-]\d{3})\b/);
-    if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
-    // Telefone — numero com DDD
-    var telMatch = txt.match(/(\d{2}\s*\d{4}\s*\d{4})/);
-    if(telMatch) document.getElementById("nc-tel").value = telMatch[1];
-    // Marca — Ferracini
+    // Telefone — formato XX XXXX XXXX ou (XX) XXXX-XXXX
+    var telMatch = txt.match(/(\d{2})\s+(\d{4})\s+(\d{4})/);
+    if(telMatch) {
+      document.getElementById("nc-tel").value = "("+telMatch[1]+") "+telMatch[2]+"-"+telMatch[3];
+    } else {
+      var telMatch2 = txt.match(/\((\d{2})\)\s*(\d{4,5}[\-\s]\d{4})/);
+      if(telMatch2) document.getElementById("nc-tel").value = "("+telMatch2[1]+") "+telMatch2[2];
+    }
+    // Marca
     document.getElementById("nc-marca").value = "ferracini";
   }
 
