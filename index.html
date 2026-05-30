@@ -729,20 +729,13 @@ async function lerPDF(event) {
     });
     var mediaType = file.type || "application/pdf";
     statusTxt.textContent = "Extraindo dados com IA...";
-    var prompt = "Leia este pedido e retorne APENAS um JSON com este formato exato, sem texto antes ou depois:\n{\"cliente\":{\"nome\":\"\",\"cnpj\":\"\",\"endereco\":\"\",\"cidade\":\"\",\"cep\":\"\",\"telefone\":\"\",\"email\":\"\"},\"pedido\":{\"numero\":\"\",\"condicao_pagamento\":\"\",\"previsao_entrega\":\"\",\"total_pares\":0,\"valor_total\":0,\"marca\":\"disney\",\"itens\":[{\"ref\":\"\",\"descricao\":\"\",\"pares\":0,\"unitario\":0,\"grade\":{}}]}}";
-    var contentArr = [
-      { type: mediaType==="application/pdf" ? "document" : "image", source: { type:"base64", media_type:mediaType, data:base64 } },
-      { type:"text", text:prompt }
-    ];
-    var resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:2000, messages:[{role:"user",content:contentArr}] })
+    var resp = await fetch("/api/processar-pdf", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({base64: base64, mediaType: mediaType})
     });
-    var data = await resp.json();
-    if(!resp.ok) { statusTxt.textContent = "Erro: "+(data.error?data.error.message:"tente novamente"); return; }
-    var txt = data.content[0].text.replace(/```json|```/g,"").trim();
-    var r = JSON.parse(txt);
+    var r = await resp.json();
+    if(!resp.ok) { statusTxt.textContent = "Erro: "+(r.error||"tente novamente"); return; }
     // Preencher cliente
     if(r.cliente) {
       var c = r.cliente;
@@ -793,7 +786,7 @@ async function lerPDF(event) {
         document.getElementById("fer-pares").value=p.total_pares||0;
         document.getElementById("fer-valor").value=p.valor_total||0;
       }
-      if(!statusTxt.innerHTML.indexOf("Cadastrar")>=0) {
+      if(statusTxt.innerHTML.indexOf("Cadastrar")<0) {
         statusTxt.textContent="Importado: "+p.total_pares+" pares - R$ "+(p.valor_total||0).toFixed(2).replace(".",",");
       }
     }
@@ -1165,6 +1158,7 @@ function editarCliente(id) {
 function importarPedido() {
   var txt = document.getElementById("import-text").value;
   if(!txt.trim()) { alert("Cole o texto do pedido primeiro."); return; }
+  var linhas = txt.split(/\n/);
   // CNPJ
   var cnpjMatch = txt.match(/(\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2})/);
   if(cnpjMatch) document.getElementById("nc-cnpj").value = cnpjMatch[1].replace(/\s/g,"");
@@ -1175,27 +1169,44 @@ function importarPedido() {
     nome = nome.replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
     if(nome) document.getElementById("nc-nome").value = nome;
   }
-  // Endereco — qualquer linha que comece com R , RUA, AV, AVENIDA, PRACA, etc
-  var linhas = txt.split(/\n/);
+  // Endereco — linhas com R , RUA, AV, PRACA, etc
   for(var i=0;i<linhas.length;i++) {
     var l = linhas[i].trim();
-    if(l.match(/^(R\.?\s|RUA|AV\.?\s|AVENIDA|PRACA|PC\.?\s|TRAV|ESTRADA|ROD|RODOVIA)/i)) {
-      document.getElementById("nc-endereco").value = l;
+    if(l.match(/^(R\.?\s|RUA\s|AV\.?\s|AVENIDA\s|PRACA\s|PC\.?\s|TRAV|ESTRADA|ROD|RODOVIA|R\s[A-Z])/i) && l.length > 5) {
+      // Remover CEP se estiver na mesma linha
+      var end = l.replace(/CEP[:\s]*\d{5}[\-\s]?\d{3}/i,"").trim();
+      document.getElementById("nc-endereco").value = end;
       break;
     }
   }
-  // Cidade — padrao CIDADE - SC ou CIDADE CEP:
-  var cidMatch = txt.match(/([A-Z][A-Z\s]+)\s*-\s*SC/i);
-  if(cidMatch) document.getElementById("nc-cidade").value = cidMatch[1].trim();
+  // Cidade — padrao CIDADE - SC, CIDADE CEP ou linha separada
+  var cidMatch = txt.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÜ][A-ZÀÁÂÃÉÊÍÓÔÕÚÜ\s]+)\s*[\-–]\s*SC/i);
+  if(cidMatch) {
+    var cid = cidMatch[1].trim();
+    // Remover palavras indesejadas
+    if(cid.toLowerCase().indexOf("lauro")<0 && cid.toLowerCase().indexOf("itajai")<0 && cid.length < 40) {
+      document.getElementById("nc-cidade").value = cid;
+    } else {
+      document.getElementById("nc-cidade").value = cid;
+    }
+  }
   // CEP
   var cepMatch = txt.match(/CEP[:\s]*(\d{5}[\-\s]?\d{3})/i);
+  if(!cepMatch) cepMatch = txt.match(/\b(\d{5}[\-]\d{3})\b/);
   if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
-  // Telefone
-  var telMatch = txt.match(/Fone[:\s]*([\d\s\-\(\)]+)/i);
-  if(telMatch) document.getElementById("nc-tel").value = telMatch[1].trim().split(/\s/)[0];
+  // Telefone — pegar numero completo apos Fone:
+  var telMatch = txt.match(/Fone[:\s]*([\d\s\-\(\)\.]+)/i);
+  if(telMatch) {
+    var tel = telMatch[1].trim().replace(/\s+/g," ");
+    // Pegar apenas o primeiro numero completo
+    var telNum = tel.match(/([\(\d][\d\s\-\(\)\.]{7,15})/);
+    if(telNum) document.getElementById("nc-tel").value = telNum[1].trim();
+    else document.getElementById("nc-tel").value = tel.split(/\s/)[0];
+  }
   // Email
-  var emailMatch = txt.match(/[\w\.\-]+@[\w\.\-]+\.\w+/i);
-  if(emailMatch) document.getElementById("nc-email").value = emailMatch[0];
+  var emailMatch = txt.match(/e[\-\s]?mail[:\s]*([\w\.\-]+@[\w\.\-]+\.\w+)/i);
+  if(!emailMatch) emailMatch = txt.match(/([\w\.\-]+@[\w\.\-]+\.\w+)/i);
+  if(emailMatch) document.getElementById("nc-email").value = emailMatch[1]||emailMatch[0];
   document.getElementById("import-text").value = "";
   alert("Dados extraidos! Confira os campos.");
 }
