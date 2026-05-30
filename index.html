@@ -268,6 +268,14 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <button class="btn btn-disney btn-sm" style="margin-top:8px" onclick="importarPedidoCompleto()">Importar pedido</button>
   </div>
 
+  <div class="flbl">Tipo de comissao</div>
+  <select class="inp" id="tipo-comissao" style="margin-bottom:10px">
+    <option value="10">Disney Varejo — 10%</option>
+    <option value="5">Disney Rede — 5%</option>
+    <option value="6">Ferracini Normal — 6%</option>
+    <option value="4">Ferracini Especial (Gervase/Promo) — 4%</option>
+  </select>
+
   <div class="flbl">Lojista</div>
   <select class="inp" id="cli" onchange="selecionarCliente()">
     <option value="">Selecionar cliente...</option>
@@ -743,18 +751,27 @@ function selecionarMarca(marca) {
   var infoF = document.getElementById("marca-info-ferracini");
   var listD = document.getElementById("plist-disney");
   var listF = document.getElementById("plist-ferracini");
+  var tipoComSel = document.getElementById("tipo-comissao");
   if(marca === "disney") {
     btnD.style.background="#003DA5"; btnD.style.color="#fff"; btnD.style.borderColor="#003DA5";
     btnF.style.background="#fff"; btnF.style.color="#6b7280"; btnF.style.borderColor="#e5e7eb";
     infoD.style.display="block"; infoF.style.display="none";
     if(listD) listD.style.display="block";
     if(listF) listF.style.display="none";
+    // Mostrar opcoes Disney no seletor
+    if(tipoComSel) {
+      tipoComSel.innerHTML = "<option value='10'>Disney Varejo - 10%</option><option value='5'>Disney Rede - 5%</option>";
+    }
   } else {
     btnF.style.background="#C8102E"; btnF.style.color="#fff"; btnF.style.borderColor="#C8102E";
     btnD.style.background="#fff"; btnD.style.color="#6b7280"; btnD.style.borderColor="#e5e7eb";
     infoF.style.display="block"; infoD.style.display="none";
     if(listD) listD.style.display="none";
     if(listF) listF.style.display="block";
+    // Mostrar opcoes Ferracini no seletor
+    if(tipoComSel) {
+      tipoComSel.innerHTML = "<option value='6'>Ferracini Normal - 6%</option><option value='4'>Ferracini Especial (Gervase/Promo) - 4%</option>";
+    }
   }
 }
 
@@ -1002,33 +1019,39 @@ function editarCliente(id) {
 function importarPedido() {
   var txt = document.getElementById("import-text").value;
   if(!txt.trim()) { alert("Cole o texto do pedido primeiro."); return; }
-  // Extrair nome e CNPJ
+  // CNPJ
   var cnpjMatch = txt.match(/(\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2})/);
   if(cnpjMatch) document.getElementById("nc-cnpj").value = cnpjMatch[1].replace(/\s/g,"");
-  // Nome do cliente - linha apos "Cliente:"
-  var nomeMatch = txt.match(/Cliente[:\s]+([^\-\n\r]+)/i);
+  // Nome — linha apos Cliente:
+  var nomeMatch = txt.match(/Cliente[:\s]+([^\n\r\-]+)/i);
   if(nomeMatch) {
-    var nome = nomeMatch[1].replace(/\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2}/,"").trim();
+    var nome = nomeMatch[1].replace(/\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2}/g,"").trim();
     nome = nome.replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
     if(nome) document.getElementById("nc-nome").value = nome;
   }
-  // Endereco
-  var endMatch = txt.match(/(?:RUA|AV|AVENIDA|R\.|ALAMEDA)[^\n\r]*/i);
-  if(endMatch) document.getElementById("nc-endereco").value = endMatch[0].trim();
-  // Cidade
+  // Endereco — qualquer linha que comece com R , RUA, AV, AVENIDA, PRACA, etc
+  var linhas = txt.split(/\n/);
+  for(var i=0;i<linhas.length;i++) {
+    var l = linhas[i].trim();
+    if(l.match(/^(R\.?\s|RUA|AV\.?\s|AVENIDA|PRACA|PC\.?\s|TRAV|ESTRADA|ROD|RODOVIA)/i)) {
+      document.getElementById("nc-endereco").value = l;
+      break;
+    }
+  }
+  // Cidade — padrao CIDADE - SC ou CIDADE CEP:
   var cidMatch = txt.match(/([A-Z][A-Z\s]+)\s*-\s*SC/i);
   if(cidMatch) document.getElementById("nc-cidade").value = cidMatch[1].trim();
   // CEP
   var cepMatch = txt.match(/CEP[:\s]*(\d{5}[\-\s]?\d{3})/i);
   if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
   // Telefone
-  var telMatch = txt.match(/Fone[:\s]*(\d[\d\s]+)/i);
-  if(telMatch) document.getElementById("nc-tel").value = telMatch[1].trim();
+  var telMatch = txt.match(/Fone[:\s]*([\d\s\-\(\)]+)/i);
+  if(telMatch) document.getElementById("nc-tel").value = telMatch[1].trim().split(/\s/)[0];
   // Email
   var emailMatch = txt.match(/[\w\.\-]+@[\w\.\-]+\.\w+/i);
   if(emailMatch) document.getElementById("nc-email").value = emailMatch[0];
   document.getElementById("import-text").value = "";
-  alert("Dados extraidos! Confira e complete o que faltar.");
+  alert("Dados extraidos! Confira os campos.");
 }
 
 async function novaRede() {
@@ -1086,21 +1109,24 @@ async function salvarCliente() {
     popularSelectClientes();
     renderClientes("todos");
     atualizarHome();
-    document.getElementById("nc-nome").value="";
-    document.getElementById("nc-cnpj").value="";
-    document.getElementById("nc-endereco").value="";
-    document.getElementById("nc-cidade").value="";
-    document.getElementById("nc-cep").value="";
-    document.getElementById("nc-tel").value="";
-    document.getElementById("nc-email").value="";
-    document.getElementById("nc-obs").value="";
-    alert("Cliente salvo!");
+    // Limpar TODOS os campos
+    var campos = ["nc-nome","nc-cnpj","nc-endereco","nc-cidade","nc-cep","nc-tel","nc-email","nc-obs","import-text"];
+    for(var i=0;i<campos.length;i++) {
+      var el = document.getElementById(campos[i]);
+      if(el) el.value = "";
+    }
+    document.getElementById("nc-rede").value = "";
+    document.getElementById("nc-marca").value = "disney";
+    document.getElementById("nc-ciclo").value = "90";
+    btn.textContent = "Salvar cliente";
+    btn.disabled = false;
+    // Mostrar confirmacao sem alert e voltar pra lista
     goTo("clientes");
   } else {
     alert("Erro ao salvar. Tente novamente.");
+    btn.textContent = "Salvar cliente";
+    btn.disabled = false;
   }
-  btn.textContent = "Salvar cliente";
-  btn.disabled = false;
 }
 
 // DISNEY
@@ -1224,13 +1250,16 @@ async function salvarPedido() {
   var cliId = parseInt(document.getElementById("cli").value);
   if(!cliId) { alert("Selecione o cliente."); return; }
   var tp=0, tv=0, tipoTabela="varejo", percComissao=10;
+  // Pegar comissao do seletor
+  var tipoComSel = document.getElementById("tipo-comissao");
+  if(tipoComSel) percComissao = parseFloat(tipoComSel.value)||10;
+  if(percComissao===5) tipoTabela="rede";
   if(marcaAtual === "disney") {
     for(var i=0;i<itens.length;i++) {
       var item=itens[i]; var pr=getPreco(item.l,item);
       for(var j=0;j<item.ns.length;j++){var q=item.qtds[item.ns[j]]||0;tp+=q;tv+=q*pr;}
     }
     if(tp===0){alert("Adicione pelo menos um produto.");return;}
-    percComissao = 10;
   } else {
     tp = parseInt(document.getElementById("fer-pares").value)||0;
     tv = parseFloat(document.getElementById("fer-valor").value)||0;
