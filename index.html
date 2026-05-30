@@ -1062,7 +1062,6 @@ function salvarDados() {
 async function inicializar() {
   document.getElementById("hdate").textContent = new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
   document.getElementById("entrega").value = new Date(Date.now()+86400000*60).toISOString().split("T")[0];
-  // Carregar dados do Supabase
   await dbCarregarRedes();
   await dbCarregarClientes();
   await dbCarregarPedidos();
@@ -1075,7 +1074,7 @@ async function inicializar() {
   await dbCarregarEstatisticas();
   await dbCarregarComissoes();
 }
-inicializar();
+// inicializar() chamado no final do script
 
 function getStatusCliente(c) {
   if(!c.ultimoPedido) return "vermelho";
@@ -2024,6 +2023,8 @@ window.onerror = function(msg, src, line, col, err) {
   div.textContent = 'ERRO linha ' + line + ': ' + msg;
   document.body.appendChild(div);
 };
+
+inicializar();
 </script>
 </body>
 </html>
