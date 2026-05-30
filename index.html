@@ -262,10 +262,13 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   <div id="marca-info-ferracini" style="display:none;font-size:11px;color:#C8102E;background:#fef2f2;border-radius:6px;padding:6px 10px;margin-bottom:10px">Ferracini — Registrar pedido feito no tablet</div>
 
   <div class="card" style="background:#f0f4ff;border-color:#003DA5;margin-bottom:14px">
-    <p style="font-size:12px;color:#003DA5;font-weight:600;margin-bottom:6px">Importar pedido completo</p>
-    <p style="font-size:11px;color:#6b7280;margin-bottom:8px">Cole o texto do pedido — produtos, grades e valores sao preenchidos automaticamente</p>
-    <textarea class="inp" id="import-pedido-txt" rows="5" placeholder="Cole aqui o texto completo do pedido Disney..."></textarea>
-    <button class="btn btn-disney btn-sm" style="margin-top:8px" onclick="importarPedidoCompleto()">Importar pedido</button>
+    <p style="font-size:12px;color:#003DA5;font-weight:600;margin-bottom:6px">Importar pedido — PDF ou foto</p>
+    <p style="font-size:11px;color:#6b7280;margin-bottom:8px">Selecione o PDF ou foto do pedido. A IA le e preenche tudo automaticamente.</p>
+    <input type="file" id="pdf-upload" accept="image/*,.pdf" style="display:none" onchange="lerPDF(event)" />
+    <button class="btn btn-disney btn-sm" style="margin-top:0" onclick="document.getElementById('pdf-upload').click()">Selecionar PDF ou foto</button>
+    <div id="pdf-status" style="display:none;margin-top:8px;font-size:12px;color:#003DA5;padding:8px;background:#fff;border-radius:6px;border:1px solid #c7d7f7">
+      <span id="pdf-status-txt">Lendo pedido...</span>
+    </div>
   </div>
 
   <div class="flbl">Tipo de comissao</div>
@@ -668,6 +671,147 @@ async function dbDeletarGasto(id) {
   } catch(e) { console.log("Erro deletar gasto:", e); }
 }
 
+async function dbDeletarCliente(id) {
+  try {
+    await db.from("parcelas_comissao").delete().eq("pedido_id", db.from("pedidos").select("id").eq("cliente_id",id));
+    await db.from("pedidos").delete().eq("cliente_id", id);
+    await db.from("clientes").delete().eq("id", id);
+    return true;
+  } catch(e) { console.log("Erro deletar cliente:", e); return false; }
+}
+
+async function confirmarDeletarCliente(id, nome) {
+  if(!confirm("Excluir " + nome + " e todos os pedidos? Nao pode ser desfeito.")) return;
+  try {
+    var peds = await db.from("pedidos").select("id").eq("cliente_id", id);
+    if(peds.data && peds.data.length) {
+      var ids = peds.data.map(function(p){return p.id;});
+      await db.from("parcelas_comissao").delete().in("pedido_id", ids);
+      await db.from("pedidos").delete().eq("cliente_id", id);
+    }
+    await db.from("clientes").delete().eq("id", id);
+    await dbCarregarClientes();
+    await dbCarregarPedidos();
+    popularSelectClientes();
+    renderClientes("todos");
+    atualizarHome();
+    goTo("clientes");
+  } catch(e) { alert("Erro ao excluir. Tente novamente."); console.log(e); }
+}
+
+async function confirmarDeletarPedido(id) {
+  if(!confirm("Excluir este pedido? Nao pode ser desfeito.")) return;
+  try {
+    await db.from("parcelas_comissao").delete().eq("pedido_id", id);
+    await db.from("pedidos").delete().eq("id", id);
+    await dbCarregarPedidos();
+    await dbCarregarEstatisticas();
+    // Recarregar detalhe do cliente atual
+    var cliId = parseInt(document.getElementById("cli").value)||0;
+    if(cliId) verCliente(cliId);
+    else goTo("clientes");
+  } catch(e) { alert("Erro ao excluir."); }
+}
+
+async function lerPDF(event) {
+  var file = event.target.files[0];
+  if(!file) return;
+  var status = document.getElementById("pdf-status");
+  var statusTxt = document.getElementById("pdf-status-txt");
+  status.style.display = "block";
+  statusTxt.textContent = "Lendo arquivo...";
+  try {
+    var base64 = await new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(e) { resolve(e.target.result.split(",")[1]); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    var mediaType = file.type || "application/pdf";
+    statusTxt.textContent = "Extraindo dados com IA...";
+    var prompt = "Leia este pedido e retorne APENAS um JSON com este formato exato, sem texto antes ou depois:\n{\"cliente\":{\"nome\":\"\",\"cnpj\":\"\",\"endereco\":\"\",\"cidade\":\"\",\"cep\":\"\",\"telefone\":\"\",\"email\":\"\"},\"pedido\":{\"numero\":\"\",\"condicao_pagamento\":\"\",\"previsao_entrega\":\"\",\"total_pares\":0,\"valor_total\":0,\"marca\":\"disney\",\"itens\":[{\"ref\":\"\",\"descricao\":\"\",\"pares\":0,\"unitario\":0,\"grade\":{}}]}}";
+    var contentArr = [
+      { type: mediaType==="application/pdf" ? "document" : "image", source: { type:"base64", media_type:mediaType, data:base64 } },
+      { type:"text", text:prompt }
+    ];
+    var resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:2000, messages:[{role:"user",content:contentArr}] })
+    });
+    var data = await resp.json();
+    if(!resp.ok) { statusTxt.textContent = "Erro: "+(data.error?data.error.message:"tente novamente"); return; }
+    var txt = data.content[0].text.replace(/```json|```/g,"").trim();
+    var r = JSON.parse(txt);
+    // Preencher cliente
+    if(r.cliente) {
+      var c = r.cliente;
+      var cnpjLimpo = (c.cnpj||"").replace(/\D/g,"");
+      var cliEncontrado = null;
+      for(var i=0;i<clientes.length;i++) {
+        if(clientes[i].cnpj && clientes[i].cnpj.replace(/\D/g,"")===cnpjLimpo) { cliEncontrado=clientes[i]; break; }
+      }
+      if(cliEncontrado) {
+        document.getElementById("cli").value = cliEncontrado.id;
+        selecionarCliente();
+        statusTxt.textContent = "Cliente: " + cliEncontrado.nome;
+      } else {
+        window._clienteNovo = c;
+        statusTxt.innerHTML = "Cliente novo — <a href='#' onclick='irCadastrarCliente(window._clienteNovo)' style='color:#003DA5;font-weight:600;text-decoration:underline'>Cadastrar agora</a>";
+      }
+    }
+    // Preencher pedido
+    if(r.pedido) {
+      var p = r.pedido;
+      if(p.condicao_pagamento) {
+        var cs = document.getElementById("cond");
+        var cl = p.condicao_pagamento.replace(/\s*DIAS/gi,"").replace(/\s*DD/gi,"").trim();
+        var found=false;
+        for(var i=0;i<cs.options.length;i++){if(cs.options[i].value.replace(/DD/i,"")===cl){cs.value=cs.options[i].value;found=true;break;}}
+        if(!found){var o=document.createElement("option");o.value=cl;o.textContent=cl;cs.appendChild(o);cs.value=cl;}
+      }
+      if(p.previsao_entrega) {
+        var pts = p.previsao_entrega.split("/");
+        if(pts.length===3) document.getElementById("entrega").value=pts[2]+"-"+pts[1]+"-"+pts[0];
+      }
+      var marca = (p.marca||"").toLowerCase().indexOf("ferracini")>=0?"ferracini":"disney";
+      selecionarMarca(marca);
+      if(marca==="disney" && p.itens && p.itens.length) {
+        itens=[];
+        for(var i=0;i<p.itens.length;i++) {
+          var item=p.itens[i];
+          var prod=null;
+          for(var j=0;j<PRODS.length;j++){if(PRODS[j].r===item.ref){prod=PRODS[j];break;}}
+          var ns=[]; var qtds={};
+          if(item.grade){var ks=Object.keys(item.grade);for(var k=0;k<ks.length;k++){var n=parseInt(ks[k]);var q=parseInt(item.grade[ks[k]])||0;ns.push(n);if(q>0)qtds[n]=q;}ns.sort(function(a,b){return a-b;});}
+          itens.push({r:item.ref,l:prod?prod.l:"IMPULSE",n:prod?prod.n:item.descricao||item.ref,ns:ns,qtds:qtds,qpad:1,unitarioOriginal:item.unitario||0});
+        }
+        renderItens(); atuResumo();
+      }
+      if(marca==="ferracini") {
+        document.getElementById("fer-num").value=p.numero||"";
+        document.getElementById("fer-pares").value=p.total_pares||0;
+        document.getElementById("fer-valor").value=p.valor_total||0;
+      }
+      if(!statusTxt.innerHTML.indexOf("Cadastrar")>=0) {
+        statusTxt.textContent="Importado: "+p.total_pares+" pares - R$ "+(p.valor_total||0).toFixed(2).replace(".",",");
+      }
+    }
+    document.getElementById("pdf-upload").value="";
+  } catch(e) { console.log("Erro PDF:",e); statusTxt.textContent="Erro ao ler. Tente novamente."; }
+}
+
+function irCadastrarCliente(dados) {
+  goTo("novo-cliente");
+  if(dados.nome) document.getElementById("nc-nome").value=dados.nome;
+  if(dados.cnpj) document.getElementById("nc-cnpj").value=dados.cnpj;
+  if(dados.endereco) document.getElementById("nc-endereco").value=dados.endereco;
+  if(dados.cidade) document.getElementById("nc-cidade").value=dados.cidade;
+  if(dados.cep) document.getElementById("nc-cep").value=dados.cep;
+  if(dados.telefone) document.getElementById("nc-tel").value=dados.telefone;
+  if(dados.email) document.getElementById("nc-email").value=dados.email;
+}
+
 async function dbCarregarEstatisticas() {
   try {
     var mes = new Date().getMonth()+1;
@@ -964,7 +1108,8 @@ function verCliente(id) {
       var p = peds[i];
       pedHtml += "<div class='pedido-hist-item'>";
       pedHtml += "<div><span class='tag tag-disney'>" + (p.marca||"disney").toUpperCase() + "</span> " + new Date(p.data).toLocaleDateString("pt-BR") + "</div>";
-      pedHtml += "<div style='font-weight:600'>R$ " + (p.total||0).toFixed(2).replace(".",",") + " - " + (p.pares||0) + "p</div></div>";
+      pedHtml += "<div style='display:flex;align-items:center;gap:8px'><span style='font-weight:600'>R$ " + (p.total||0).toFixed(2).replace(".",",") + " - " + (p.pares||0) + "p</span>";
+      pedHtml += "<button onclick='confirmarDeletarPedido("+p.id+")' style='background:none;border:none;cursor:pointer;color:#C8102E;font-size:16px;line-height:1'>x</button></div></div>";
     }
   } else {
     pedHtml = "<p style='text-align:center;color:#6b7280;font-size:12px;padding:12px 0'>Nenhum pedido registrado</p>";
@@ -986,8 +1131,9 @@ function verCliente(id) {
   html += "</div>";
   html += "<div class='secao'>Historico de pedidos (" + peds.length + ")</div>";
   html += "<div class='card' style='padding:0 12px'>" + pedHtml + "</div>";
-  html += "<button class='btn btn-disney' onclick='novoP(" + c.id + ")' style='margin-top:12px'>+ Novo pedido Disney</button>";
+  html += "<button class='btn btn-disney' onclick='novoP(" + c.id + ")' style='margin-top:12px'>+ Novo pedido</button>";
   html += "<button class='btn btn-dash' onclick='editarCliente(" + c.id + ")' style='margin-top:6px'>Editar cliente</button>";
+  html += "<button class='btn' onclick='confirmarDeletarCliente("+c.id+",\""+c.nome+"\")' style='margin-top:6px;background:#fff;color:#C8102E;border:1px solid #C8102E;width:100%;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif'>Excluir cliente</button>";
   document.getElementById("detalhe-content").innerHTML = html;
   telaAnterior = "clientes";
   goTo("detalhe-cliente");
