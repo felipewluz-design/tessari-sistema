@@ -323,19 +323,43 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   <div id="plist-ferracini" style="display:none">
     <div class="card" style="background:#fff8f8;border-color:#C8102E">
       <p style="font-size:12px;color:#C8102E;font-weight:600;margin-bottom:6px">Registrar pedido Ferracini</p>
-      <p style="font-size:11px;color:#6b7280;margin-bottom:8px">O pedido ja foi lancado no tablet. Registre aqui os dados para controle de comissao.</p>
+      <p style="font-size:11px;color:#6b7280;margin-bottom:8px">O pedido ja foi lancado no tablet. Registre aqui para controle de comissao.</p>
       <div class="flbl">Numero do pedido</div>
-      <input type="text" class="inp" id="fer-num" placeholder="Ex: FER00123" />
+      <input type="text" class="inp" id="fer-num" placeholder="Ex: 2175813" />
       <div class="row2" style="margin-top:0">
         <div><div class="flbl">Total de pares</div><input type="number" class="inp" id="fer-pares" placeholder="0" /></div>
-        <div><div class="flbl">Valor total (R$)</div><input type="number" class="inp" id="fer-valor" placeholder="0,00" step="0.01" /></div>
+        <div><div class="flbl">Valor liquido (R$)</div><input type="number" class="inp" id="fer-valor" placeholder="0,00" step="0.01" onchange="atualizarPreviewFerracini()" oninput="atualizarPreviewFerracini()" /></div>
       </div>
+      <div class="flbl">Previsao de faturamento</div>
+      <input type="text" class="inp" id="fer-faturamento" placeholder="Ex: 1a quinzena julho/2026" />
+      <div class="flbl">Cond. pagamento do cliente</div>
+      <select class="inp" id="fer-cond-cli">
+        <option value="30">30 dias</option>
+        <option value="60">60 dias</option>
+        <option value="30/60">30/60 dias</option>
+        <option value="30/60/90">30/60/90 dias</option>
+        <option value="avista">A vista</option>
+      </select>
       <div class="flbl">Tipo de tabela</div>
-      <select class="inp" id="fer-tabela">
+      <select class="inp" id="fer-tabela" onchange="atualizarPreviewFerracini()">
         <option value="normal">Normal — 6%</option>
         <option value="gervase">Gervase — 4%</option>
         <option value="promocao">Promocao fabrica — 4%</option>
       </select>
+      <div id="fer-comissao-preview" style="margin-top:10px;padding:10px;background:#fff;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;display:none">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:#6b7280">Comissao total</span>
+          <span id="fer-com-total" style="font-weight:600"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:#6b7280">Parcela 1 — dia 27 faturamento</span>
+          <span id="fer-com-p1" style="font-weight:600;color:#1D9E75"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:#6b7280">Parcela 2 — na liquidez</span>
+          <span id="fer-com-p2" style="font-weight:600;color:#003DA5"></span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -381,7 +405,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
       <button class="btn btn-green btn-sm" onclick="addGasto()">Salvar</button>
     </div>
   </div>
-  <div class="secao">Hoje</div>
+  <div class="secao">Ultimos 7 dias</div>
   <div class="card" id="ghist" style="padding:0 14px">
     <p style="text-align:center;color:#6b7280;font-size:13px;padding:16px 0">Nenhum gasto registrado</p>
   </div>
@@ -613,39 +637,108 @@ async function dbSalvarPedido(ped) {
 
 async function dbGerarParcelas(pedidoId, ped) {
   try {
-    var partes = ped.cond ? ped.cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/") : ["30"];
-    var totalParcelas = partes.length;
-    var valorParcela = ped.total / totalParcelas;
     var percComissao = ped.percComissao || 10;
     var percPreposto = ped.isPreposto ? percComissao * 0.5 : 0;
     var percLiquido = percComissao - percPreposto;
+    var valComissaoTotal = ped.total * percComissao / 100;
     var parcelas = [];
-    var dataBase = new Date(ped.data);
-    for(var i=0;i<partes.length;i++) {
-      var dias = parseInt(partes[i])||30;
-      var dataPrev = new Date(dataBase.getTime() + dias*86400000);
-      var valComissao = valorParcela * percComissao / 100;
-      var valPreposto = valorParcela * percPreposto / 100;
-      var valLiquido = valorParcela * percLiquido / 100;
+
+    if(ped.marca === "ferracini") {
+      // Ferracini: 50% dia 27 do mes de faturamento + 50% na liquidez
+      var valP1 = Math.round(valComissaoTotal * 0.5 * 100) / 100;
+      var valP2 = Math.round(valComissaoTotal * 0.5 * 100) / 100;
+      // Calcular data da parcela 1 — dia 27 do mes de faturamento
+      // Tentar extrair mes/ano do campo faturamento
+      var dataP1 = null;
+      if(ped.faturamento) {
+        var mesMatch = ped.faturamento.match(/jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez/i);
+        var anoMatch = ped.faturamento.match(/20\d{2}/);
+        var meses = {jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
+        if(mesMatch && anoMatch) {
+          var mes = meses[mesMatch[0].toLowerCase().substring(0,3)];
+          var ano = parseInt(anoMatch[0]);
+          dataP1 = new Date(ano, mes, 27);
+        }
+      }
+      if(!dataP1) {
+        // Se nao conseguiu extrair, usa 60 dias a partir da data do pedido
+        dataP1 = new Date(new Date(ped.data).getTime() + 60*86400000);
+        dataP1.setDate(27);
+      }
+      // Parcela 2 — liquidez: 30 dias apos parcela 1 (estimativa)
+      var diasCli = parseInt(ped.cond)||30;
+      var dataP2 = new Date(dataP1.getTime() + diasCli*86400000);
       parcelas.push({
         pedido_id: pedidoId,
-        numero_parcela: i+1,
-        valor_parcela: Math.round(valorParcela*100)/100,
-        valor_comissao: Math.round(valComissao*100)/100,
-        valor_comissao_preposto: Math.round(valPreposto*100)/100,
-        valor_comissao_liquida: Math.round(valLiquido*100)/100,
-        data_prevista: dataPrev.toISOString().split("T")[0],
+        numero_parcela: 1,
+        valor_parcela: Math.round(ped.total*0.5*100)/100,
+        valor_comissao: Math.round(valP1*(percComissao/percComissao)*100)/100,
+        valor_comissao_preposto: Math.round(valP1*percPreposto/percComissao*100)/100,
+        valor_comissao_liquida: Math.round(valP1*percLiquido/percComissao*100)/100,
+        data_prevista: dataP1.toISOString().split("T")[0],
         status: "pendente"
       });
+      parcelas.push({
+        pedido_id: pedidoId,
+        numero_parcela: 2,
+        valor_parcela: Math.round(ped.total*0.5*100)/100,
+        valor_comissao: Math.round(valP2*(percComissao/percComissao)*100)/100,
+        valor_comissao_preposto: Math.round(valP2*percPreposto/percComissao*100)/100,
+        valor_comissao_liquida: Math.round(valP2*percLiquido/percComissao*100)/100,
+        data_prevista: dataP2.toISOString().split("T")[0],
+        status: "pendente"
+      });
+    } else {
+      // Disney: comissao na liquidez — uma parcela por duplicata do cliente
+      var partes = ped.cond ? ped.cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/") : ["30"];
+      var totalParcelas = partes.length;
+      var valorParcela = ped.total / totalParcelas;
+      var dataBase = new Date(ped.data);
+      for(var i=0;i<partes.length;i++) {
+        var dias = parseInt(partes[i])||30;
+        var dataPrev = new Date(dataBase.getTime() + dias*86400000);
+        var valCom = valorParcela * percComissao / 100;
+        var valPre = valorParcela * percPreposto / 100;
+        var valLiq = valorParcela * percLiquido / 100;
+        parcelas.push({
+          pedido_id: pedidoId,
+          numero_parcela: i+1,
+          valor_parcela: Math.round(valorParcela*100)/100,
+          valor_comissao: Math.round(valCom*100)/100,
+          valor_comissao_preposto: Math.round(valPre*100)/100,
+          valor_comissao_liquida: Math.round(valLiq*100)/100,
+          data_prevista: dataPrev.toISOString().split("T")[0],
+          status: "pendente"
+        });
+      }
     }
     await db.from("parcelas_comissao").insert(parcelas);
   } catch(e) { console.log("Erro gerar parcelas:", e); }
 }
 
+function dataHojeBR() {
+  var d = new Date();
+  var offset = d.getTimezoneOffset();
+  var local = new Date(d.getTime() - offset*60000);
+  return local.toISOString().split("T")[0];
+}
+
+function dataBR(dataISO) {
+  if(!dataISO) return "";
+  var p = dataISO.split("-");
+  return p[2]+"/"+p[1]+"/"+p[0];
+}
+
 async function dbCarregarGastos() {
   try {
-    var hoje = new Date().toISOString().split("T")[0];
-    var res = await db.from("gastos").select("*").eq("data_gasto", hoje).order("created_at");
+    // Carregar ultimos 7 dias
+    var hoje = dataHojeBR();
+    var d7 = new Date();
+    d7.setDate(d7.getDate()-7);
+    var offset = d7.getTimezoneOffset();
+    var d7local = new Date(d7.getTime() - offset*60000);
+    var seteDiasAtras = d7local.toISOString().split("T")[0];
+    var res = await db.from("gastos").select("*").gte("data_gasto", seteDiasAtras).order("data_gasto", {ascending:false}).order("created_at", {ascending:false});
     if(res.data) {
       gastos = res.data.map(function(g) {
         return {id:g.id, cat:g.categoria, ob:g.descricao||"", v:parseFloat(g.valor), data:g.data_gasto, h:new Date(g.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};
@@ -660,7 +753,7 @@ async function dbSalvarGasto(gasto) {
       categoria: gasto.cat,
       descricao: gasto.ob||null,
       valor: gasto.v,
-      data_gasto: new Date().toISOString().split("T")[0]
+      data_gasto: dataHojeBR()
     }).select().single();
     if(res.data) return res.data.id;
     return null;
@@ -894,7 +987,20 @@ var condAtual = "30DD";
 var telaAnterior = "home";
 var marcaAtual = "disney";
 
-function selecionarMarca(marca) {
+function atualizarPreviewFerracini() {
+  var tv = parseFloat(document.getElementById("fer-valor").value)||0;
+  var tabFer = document.getElementById("fer-tabela").value;
+  var perc = tabFer==="normal" ? 6 : 4;
+  var preview = document.getElementById("fer-comissao-preview");
+  if(tv <= 0) { preview.style.display="none"; return; }
+  var comTotal = tv * perc / 100;
+  var p1 = Math.round(comTotal * 0.5 * 100) / 100;
+  var p2 = Math.round(comTotal * 0.5 * 100) / 100;
+  document.getElementById("fer-com-total").textContent = "R$ "+comTotal.toFixed(2).replace(".",",")+" ("+perc+"%)";
+  document.getElementById("fer-com-p1").textContent = "R$ "+p1.toFixed(2).replace(".",",");
+  document.getElementById("fer-com-p2").textContent = "R$ "+p2.toFixed(2).replace(".",",");
+  preview.style.display = "block";
+}
   marcaAtual = marca;
   var btnD = document.getElementById("btn-marca-disney");
   var btnF = document.getElementById("btn-marca-ferracini");
@@ -1113,19 +1219,56 @@ function verCliente(id) {
   if(peds.length) {
     for(var i=0;i<peds.length;i++) {
       var p = peds[i];
-      var comissao = (p.valorComissao||((p.total||0)*(p.percComissao||10)/100));
+      var comissao = p.valorComissao || ((p.total||0)*(p.percComissao||10)/100);
       var tagCor = p.marca==="ferracini" ? "tag-ferracini" : "tag-disney";
+      var percLiq = p.percComissao || 10;
+
+      // Calcular parcelas de comissao
+      var parcelasHtml = "";
+      if(p.marca === "ferracini") {
+        var p1 = comissao * 0.5;
+        var p2 = comissao * 0.5;
+        parcelasHtml += "<div style='margin-top:6px;padding:6px 8px;background:#f9fafb;border-radius:6px;font-size:11px'>";
+        parcelasHtml += "<div style='font-weight:600;color:#6b7280;margin-bottom:4px'>Previsao de comissao:</div>";
+        if(p.obs && p.obs.match(/quinz|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez/i)) {
+          parcelasHtml += "<div style='display:flex;justify-content:space-between'><span style='color:#6b7280'>Faturamento (dia 27)</span><span style='color:#1D9E75;font-weight:600'>R$ "+p1.toFixed(2).replace(".",",")+"</span></div>";
+          parcelasHtml += "<div style='display:flex;justify-content:space-between'><span style='color:#6b7280'>Liquidez cliente</span><span style='color:#003DA5;font-weight:600'>R$ "+p2.toFixed(2).replace(".",",")+"</span></div>";
+        } else {
+          parcelasHtml += "<div style='display:flex;justify-content:space-between'><span style='color:#6b7280'>Parcela 1 — dia 27 faturamento</span><span style='color:#1D9E75;font-weight:600'>R$ "+p1.toFixed(2).replace(".",",")+"</span></div>";
+          parcelasHtml += "<div style='display:flex;justify-content:space-between'><span style='color:#6b7280'>Parcela 2 — liquidez</span><span style='color:#003DA5;font-weight:600'>R$ "+p2.toFixed(2).replace(".",",")+"</span></div>";
+        }
+        parcelasHtml += "</div>";
+      } else {
+        // Disney — parcelas conforme condicao de pagamento
+        var cond = p.cond || "60/90/120";
+        var partes = cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/");
+        var valParcela = comissao / partes.length;
+        var dataBase = new Date(p.data);
+        parcelasHtml += "<div style='margin-top:6px;padding:6px 8px;background:#f0f4ff;border-radius:6px;font-size:11px'>";
+        parcelasHtml += "<div style='font-weight:600;color:#6b7280;margin-bottom:4px'>Comissao na liquidez:</div>";
+        for(var j=0;j<partes.length;j++) {
+          var dias = parseInt(partes[j])||30;
+          var dataPrev = new Date(dataBase.getTime() + dias*86400000);
+          var dataTxt = dataPrev.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
+          parcelasHtml += "<div style='display:flex;justify-content:space-between'>";
+          parcelasHtml += "<span style='color:#6b7280'>Parcela "+(j+1)+" — cliente paga em "+dataTxt+"</span>";
+          parcelasHtml += "<span style='color:#003DA5;font-weight:600'>R$ "+valParcela.toFixed(2).replace(".",",")+"</span></div>";
+        }
+        parcelasHtml += "</div>";
+      }
+
       pedHtml += "<div class='pedido-hist-item' style='flex-direction:column;align-items:flex-start;padding:10px 0;gap:4px'>";
       pedHtml += "<div style='display:flex;justify-content:space-between;width:100%;align-items:center'>";
-      pedHtml += "<div style='display:flex;align-items:center;gap:6px'><span class='tag "+tagCor+"'>"+( p.marca||"disney").toUpperCase()+"</span>";
+      pedHtml += "<div style='display:flex;align-items:center;gap:6px'><span class='tag "+tagCor+"'>"+(p.marca||"disney").toUpperCase()+"</span>";
       pedHtml += "<span style='font-size:12px;color:#6b7280'>"+new Date(p.data).toLocaleDateString("pt-BR")+"</span></div>";
       pedHtml += "<button onclick='confirmarDeletarPedido("+p.id+")' style='background:none;border:none;cursor:pointer;color:#C8102E;font-size:16px;line-height:1'>×</button></div>";
       pedHtml += "<div style='display:flex;justify-content:space-between;width:100%'>";
       pedHtml += "<div><div style='font-size:13px;font-weight:600'>R$ "+(p.total||0).toFixed(2).replace(".",",")+"</div>";
       pedHtml += "<div style='font-size:11px;color:#6b7280'>"+(p.pares||0)+" pares · "+(p.cond||"")+"</div></div>";
       pedHtml += "<div style='text-align:right'><div style='font-size:13px;font-weight:600;color:#1D9E75'>R$ "+comissao.toFixed(2).replace(".",",")+"</div>";
-      pedHtml += "<div style='font-size:11px;color:#6b7280'>comissao "+(p.percComissao||10)+"%</div></div></div>";
-      if(p.obs) pedHtml += "<div style='font-size:11px;color:#6b7280;font-style:italic'>"+p.obs+"</div>";
+      pedHtml += "<div style='font-size:11px;color:#6b7280'>comissao "+percLiq+"%</div></div></div>";
+      pedHtml += parcelasHtml;
+      if(p.obs) pedHtml += "<div style='font-size:11px;color:#6b7280;font-style:italic;margin-top:2px'>"+p.obs+"</div>";
       pedHtml += "</div>";
     }
   } else {
@@ -1184,9 +1327,109 @@ function importarPedido() {
   if(!txt.trim()) { alert("Cole o texto do pedido primeiro."); return; }
   var linhas = txt.split(/\n/).map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
 
-  // Detectar formato — Disney tem "Cliente:" no texto, Ferracini nao tem
+  // Detectar formato rotulado — "Nome:", "CNPJ:", "Endereco:" etc
+  var isRotulado = txt.match(/^Nome[:\s]/im) || txt.match(/^Endere[cç]o[:\s]/im);
+
+  if(isRotulado) {
+    // Formato rotulado — extrair por label
+    var get = function(label) {
+      var m = txt.match(new RegExp(label+"[:\\s]+([^\\n\\r]+)","i"));
+      return m ? m[1].replace(/\[.*?\]/g,"").trim() : "";
+    };
+    var nome = get("Nome");
+    var cnpj = get("CNPJ");
+    var end = get("Endere[cç]o");
+    var cidade = get("Cidade");
+    var cep = get("CEP");
+    var tel = get("Telefone|Tel");
+    var email = get("Email|E-mail");
+    var marca = get("Marca");
+    if(nome) document.getElementById("nc-nome").value = nome;
+    if(cnpj) document.getElementById("nc-cnpj").value = cnpj.replace(/[^\d]/g,"");
+    if(end) document.getElementById("nc-endereco").value = end.replace(/\s*[—\-]\s*/g,", ").replace(/,\s*,/g,",");
+    if(cidade) document.getElementById("nc-cidade").value = cidade.replace(/\s*[—\-]\s*SC.*/i,"").trim();
+    if(cep) document.getElementById("nc-cep").value = cep.replace(/[^\d]/g,"");
+    if(tel) document.getElementById("nc-tel").value = tel;
+    if(email) document.getElementById("nc-email").value = email;
+    // Marca
+    if(marca) {
+      if(marca.toLowerCase().indexOf("ambas")>=0 || marca.toLowerCase().indexOf("duas")>=0) document.getElementById("nc-marca").value = "ambos";
+      else if(marca.toLowerCase().indexOf("ferracini")>=0) document.getElementById("nc-marca").value = "ferracini";
+      else document.getElementById("nc-marca").value = "disney";
+    }
+    document.getElementById("import-text").value = "";
+    alert("Dados extraidos!");
+    return;
+  }
+
+  // Detectar formato pedido — Disney ou Ferracini
   var isDisney = txt.match(/Cliente[:\s]+/i) || txt.match(/CALCADOS DYAN/i);
   var isFerracini = txt.match(/FERRACINI/i) || txt.match(/C\.\s*DUP|C\.\s*FAT/i);
+
+  // CNPJ
+  var cnpjMatch = txt.match(/(\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2})/);
+  if(cnpjMatch) document.getElementById("nc-cnpj").value = cnpjMatch[1].replace(/[^\d]/g,"");
+
+  if(isDisney && !isFerracini) {
+    var nomeMatch = txt.match(/Cliente[:\s]+([^\n\r\-]+)/i);
+    if(nomeMatch) {
+      var nome = nomeMatch[1].replace(/\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2}/g,"").trim();
+      if(nome) document.getElementById("nc-nome").value = nome.replace(/\s+/g," ");
+    }
+    for(var i=0;i<linhas.length;i++) {
+      if(linhas[i].match(/^(R\.?\s|RUA\s|AV\.?\s|PRACA\s|TRAV|ROD)/i) && linhas[i].length>5) {
+        document.getElementById("nc-endereco").value = linhas[i].replace(/CEP[:\s]*\d{5}[\-\s]?\d{3}/i,"").trim();
+        break;
+      }
+    }
+    var cidMatch = txt.match(/([A-Z][A-Z\s]+)\s*[\-–]\s*SC/i);
+    if(cidMatch) document.getElementById("nc-cidade").value = cidMatch[1].trim();
+    var cepMatch = txt.match(/CEP[:\s]*(\d{5}[\-\s]?\d{3})/i);
+    if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
+    var telMatch = txt.match(/Fone[:\s]*([\d\s\-\(\)\.]+)/i);
+    if(telMatch) {
+      var tn = telMatch[1].trim().match(/([\(\d][\d\s\-\(\)\.]{7,15})/);
+      document.getElementById("nc-tel").value = tn ? tn[1].trim() : telMatch[1].trim().split(/\s/)[0];
+    }
+    document.getElementById("nc-marca").value = "disney";
+  } else {
+    // Ferracini PDF
+    var palavrasIgnorar = ["CIDADE","CONDICAO","REPRESENTANTE","BAIRRO","CLIENTE","ENDERECO","CNPJ","TRANSPORTADORA","IMAGEM","REGISTRO","PAGAMENTO","FRETE","REDESPACHO","ESTADO","CODIGO","CONTATO","FAX"];
+    for(var i=0;i<linhas.length;i++) {
+      var l = linhas[i];
+      var ignorar = false;
+      for(var j=0;j<palavrasIgnorar.length;j++) {
+        if(l.toUpperCase().indexOf(palavrasIgnorar[j].toUpperCase())>=0){ignorar=true;break;}
+      }
+      if(!ignorar && l.length>5 && l.match(/^[A-Z]/) && !l.match(/^\d/) && !l.match(/@/) && l.match(/LTDA|ME|EIRELI|COMERCIO|COM\s/i)) {
+        document.getElementById("nc-nome").value = l.replace(/^Nome[:\s]*/i,"").trim();
+        break;
+      }
+    }
+    for(var i=0;i<linhas.length;i++) {
+      if(linhas[i].match(/^(PRACA|PRAC|RUA|AV\b|AVENIDA|ALAMEDA|TRAV|ROD)/i) && linhas[i].length>5) {
+        document.getElementById("nc-endereco").value = linhas[i];
+        break;
+      }
+    }
+    for(var i=0;i<linhas.length;i++) {
+      if(linhas[i].match(/SAO FRANCISCO|JOINVILLE|CHAPECO|BLUMENAU|ITAJAI|FLORIANOPOLIS|LAGES|CACADOR|JARAGUA|BRUSQUE|BALNEARIO|CRICIUMA/i)) {
+        document.getElementById("nc-cidade").value = linhas[i].replace(/SC/,"").trim();
+        break;
+      }
+    }
+    var cepMatch = txt.match(/\b(\d{8})\b/) || txt.match(/\b(\d{5}[\-]\d{3})\b/);
+    if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
+    var telMatch = txt.match(/(\d{2})\s+(\d{4})\s+(\d{4})/);
+    if(telMatch) document.getElementById("nc-tel").value = "("+telMatch[1]+") "+telMatch[2]+"-"+telMatch[3];
+    document.getElementById("nc-marca").value = "ferracini";
+  }
+
+  var emailMatch = txt.match(/([\w\.\-]+@[\w\.\-]+\.\w+)/i);
+  if(emailMatch) document.getElementById("nc-email").value = emailMatch[0];
+  document.getElementById("import-text").value = "";
+  alert("Dados extraidos! Confira os campos.");
+}
 
   // CNPJ — igual nos dois formatos
   var cnpjMatch = txt.match(/(\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2})/);
@@ -1491,6 +1734,8 @@ async function salvarPedido() {
     var tabFer = document.getElementById("fer-tabela").value;
     percComissao = tabFer==="normal" ? 6 : 4;
     tipoTabela = tabFer;
+    var ferFat = document.getElementById("fer-faturamento").value||"";
+    var ferCondCli = document.getElementById("fer-cond-cli").value||"30";
   }
   var obs = document.getElementById("obs").value;
   var isPreposto = obs.toLowerCase().indexOf("preposto") >= 0;
@@ -1508,8 +1753,9 @@ async function salvarPedido() {
     marca: marcaAtual,
     numeroPedido: marcaAtual==="ferracini" ? document.getElementById("fer-num").value : null,
     data: new Date().toISOString(),
-    cond: document.getElementById("cond").value,
-    entrega: document.getElementById("entrega").value||null,
+    cond: marcaAtual==="ferracini" ? (typeof ferCondCli!=="undefined" ? ferCondCli : "30") : document.getElementById("cond").value,
+    entrega: marcaAtual==="ferracini" ? null : (document.getElementById("entrega").value||null),
+    faturamento: marcaAtual==="ferracini" ? (typeof ferFat!=="undefined" ? ferFat : "") : null,
     obs: obs,
     total: tv,
     pares: tp,
@@ -1541,6 +1787,8 @@ async function salvarPedido() {
       document.getElementById("fer-num").value="";
       document.getElementById("fer-pares").value="";
       document.getElementById("fer-valor").value="";
+      document.getElementById("fer-faturamento").value="";
+      document.getElementById("fer-comissao-preview").style.display="none";
     }
     alert("Pedido salvo com sucesso!");
     goTo("clientes");
@@ -1606,18 +1854,55 @@ async function addGasto() {
 }
 
 function renderGastos() {
-  var el=document.getElementById("ghist");
-  if(!gastos.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:16px 0'>Nenhum gasto registrado</p>";document.getElementById("gtotal").style.display="none";return;}
-  var html="";
-  for(var i=0;i<gastos.length;i++) {
-    var g=gastos[i];
-    html+="<div class='gi'><div><div style='font-size:13px;font-weight:600'>"+catN[g.cat]+"</div><div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div><div style='display:flex;align-items:center;gap:8px'><span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span><button onclick='delGasto("+g.id+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px;line-height:1'>x</button></div></div>";
+  var el = document.getElementById("ghist");
+  if(!gastos.length) {
+    el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:16px 0'>Nenhum gasto registrado</p>";
+    document.getElementById("gtotal").style.display="none";
+    document.getElementById("ghoje").textContent="R$0";
+    return;
   }
-  el.innerHTML=html;
-  var tot=0; for(var i=0;i<gastos.length;i++) tot+=gastos[i].v;
-  document.getElementById("gttxt").textContent="R$ "+tot.toFixed(2).replace(".",",");
-  document.getElementById("gtotal").style.display="flex";
-  document.getElementById("ghoje").textContent="R$"+Math.round(tot);
+  var hoje = dataHojeBR();
+  // Agrupar por dia
+  var porDia = {};
+  for(var i=0;i<gastos.length;i++) {
+    var g = gastos[i];
+    var dia = g.data || hoje;
+    if(!porDia[dia]) porDia[dia] = [];
+    porDia[dia].push(g);
+  }
+  var dias = Object.keys(porDia).sort(function(a,b){return b.localeCompare(a);});
+  var html = "";
+  var totalHoje = 0;
+  for(var d=0;d<dias.length;d++) {
+    var dia = dias[d];
+    var lista = porDia[dia];
+    var labelDia = dia === hoje ? "Hoje" : dataBR(dia);
+    var totalDia = 0;
+    for(var i=0;i<lista.length;i++) totalDia += lista[i].v;
+    if(dia === hoje) totalHoje = totalDia;
+    html += "<div style='padding:8px 0;border-bottom:2px solid #e5e7eb'>";
+    html += "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px'>";
+    html += "<span style='font-size:12px;font-weight:700;color:#374151'>"+labelDia+"</span>";
+    html += "<span style='font-size:12px;font-weight:700;color:#C8102E'>R$ "+totalDia.toFixed(2).replace(".",",")+"</span></div>";
+    for(var i=0;i<lista.length;i++) {
+      var g = lista[i];
+      html += "<div class='gi'>";
+      html += "<div><div style='font-size:13px;font-weight:600'>"+catN[g.cat]+"</div>";
+      html += "<div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div>";
+      html += "<div style='display:flex;align-items:center;gap:8px'>";
+      html += "<span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span>";
+      html += "<button onclick='delGasto("+g.id+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px;line-height:1'>×</button>";
+      html += "</div></div>";
+    }
+    html += "</div>";
+  }
+  el.innerHTML = html;
+  // Total do mes
+  var totMes = 0;
+  for(var i=0;i<gastos.length;i++) totMes += gastos[i].v;
+  document.getElementById("gttxt").textContent = "R$ "+totMes.toFixed(2).replace(".",",");
+  document.getElementById("gtotal").style.display = "flex";
+  document.getElementById("ghoje").textContent = "R$"+Math.round(totalHoje);
 }
 
 async function delGasto(id) {
