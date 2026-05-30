@@ -769,6 +769,18 @@ async function lerPDF(event) {
       }
       var marca = (p.marca||"").toLowerCase().indexOf("ferracini")>=0?"ferracini":"disney";
       selecionarMarca(marca);
+      // Ajustar comissao baseado no que a IA detectou
+      var tipoComSel = document.getElementById("tipo-comissao");
+      if(tipoComSel && p.percentual_comissao) {
+        var perc = parseFloat(p.percentual_comissao);
+        // Atualizar opcoes do seletor para a marca correta
+        if(marca==="disney") {
+          tipoComSel.innerHTML = "<option value='10'>Disney Varejo - 10%</option><option value='5'>Disney Rede - 5%</option>";
+        } else {
+          tipoComSel.innerHTML = "<option value='6'>Ferracini Normal - 6%</option><option value='4'>Ferracini Especial - 4%</option>";
+        }
+        tipoComSel.value = String(perc);
+      }
       if(marca==="disney" && p.itens && p.itens.length) {
         itens=[];
         for(var i=0;i<p.itens.length;i++) {
