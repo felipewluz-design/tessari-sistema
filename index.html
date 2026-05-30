@@ -91,8 +91,9 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 .cliente-card.amarelo{border-left:4px solid #F59E0B}
 .cliente-card.vermelho{border-left:4px solid #C8102E}
 .pedido-hist{background:#f9fafb;border-radius:8px;padding:10px 12px;margin-top:8px}
-.pedido-hist-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:12px}
+.pedido-hist-item{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:12px}
 .pedido-hist-item:last-child{border-bottom:none}
+.tag-ferracini{background:#fef2f2;color:#C8102E}
 .tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px}
 .tag-disney{background:#eef2ff;color:#003DA5}
 .tag-ferracini{background:#fef2f2;color:#C8102E}
@@ -557,7 +558,8 @@ async function dbCarregarPedidos() {
           total: parseFloat(p.valor_total)||0,
           pares: p.total_pares||0,
           prontaEntrega: p.pronta_entrega,
-          tipoTabela: p.tipo_tabela,
+          percComissao: p.percentual_comissao||10,
+          valorComissao: parseFloat(p.valor_comissao)||0,
           percComissao: p.percentual_comissao,
           valorComissao: p.valor_comissao,
           obs: p.observacoes,
@@ -1111,10 +1113,20 @@ function verCliente(id) {
   if(peds.length) {
     for(var i=0;i<peds.length;i++) {
       var p = peds[i];
-      pedHtml += "<div class='pedido-hist-item'>";
-      pedHtml += "<div><span class='tag tag-disney'>" + (p.marca||"disney").toUpperCase() + "</span> " + new Date(p.data).toLocaleDateString("pt-BR") + "</div>";
-      pedHtml += "<div style='display:flex;align-items:center;gap:8px'><span style='font-weight:600'>R$ " + (p.total||0).toFixed(2).replace(".",",") + " - " + (p.pares||0) + "p</span>";
-      pedHtml += "<button onclick='confirmarDeletarPedido("+p.id+")' style='background:none;border:none;cursor:pointer;color:#C8102E;font-size:16px;line-height:1'>x</button></div></div>";
+      var comissao = (p.valorComissao||((p.total||0)*(p.percComissao||10)/100));
+      var tagCor = p.marca==="ferracini" ? "tag-ferracini" : "tag-disney";
+      pedHtml += "<div class='pedido-hist-item' style='flex-direction:column;align-items:flex-start;padding:10px 0;gap:4px'>";
+      pedHtml += "<div style='display:flex;justify-content:space-between;width:100%;align-items:center'>";
+      pedHtml += "<div style='display:flex;align-items:center;gap:6px'><span class='tag "+tagCor+"'>"+( p.marca||"disney").toUpperCase()+"</span>";
+      pedHtml += "<span style='font-size:12px;color:#6b7280'>"+new Date(p.data).toLocaleDateString("pt-BR")+"</span></div>";
+      pedHtml += "<button onclick='confirmarDeletarPedido("+p.id+")' style='background:none;border:none;cursor:pointer;color:#C8102E;font-size:16px;line-height:1'>×</button></div>";
+      pedHtml += "<div style='display:flex;justify-content:space-between;width:100%'>";
+      pedHtml += "<div><div style='font-size:13px;font-weight:600'>R$ "+(p.total||0).toFixed(2).replace(".",",")+"</div>";
+      pedHtml += "<div style='font-size:11px;color:#6b7280'>"+(p.pares||0)+" pares · "+(p.cond||"")+"</div></div>";
+      pedHtml += "<div style='text-align:right'><div style='font-size:13px;font-weight:600;color:#1D9E75'>R$ "+comissao.toFixed(2).replace(".",",")+"</div>";
+      pedHtml += "<div style='font-size:11px;color:#6b7280'>comissao "+(p.percComissao||10)+"%</div></div></div>";
+      if(p.obs) pedHtml += "<div style='font-size:11px;color:#6b7280;font-style:italic'>"+p.obs+"</div>";
+      pedHtml += "</div>";
     }
   } else {
     pedHtml = "<p style='text-align:center;color:#6b7280;font-size:12px;padding:12px 0'>Nenhum pedido registrado</p>";
