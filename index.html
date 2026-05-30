@@ -1182,57 +1182,98 @@ function editarCliente(id) {
 function importarPedido() {
   var txt = document.getElementById("import-text").value;
   if(!txt.trim()) { alert("Cole o texto do pedido primeiro."); return; }
-  var linhas = txt.split(/\n/);
-  // CNPJ
+  var linhas = txt.split(/\n/).map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+
+  // Detectar formato — Disney tem "Cliente:" no texto, Ferracini nao tem
+  var isDisney = txt.match(/Cliente[:\s]+/i) || txt.match(/CALCADOS DYAN/i);
+  var isFerracini = txt.match(/FERRACINI/i) || txt.match(/C\.\s*DUP|C\.\s*FAT/i);
+
+  // CNPJ — igual nos dois formatos
   var cnpjMatch = txt.match(/(\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2})/);
-  if(cnpjMatch) document.getElementById("nc-cnpj").value = cnpjMatch[1].replace(/\s/g,"");
-  // Nome — linha apos Cliente:
-  var nomeMatch = txt.match(/Cliente[:\s]+([^\n\r\-]+)/i);
-  if(nomeMatch) {
-    var nome = nomeMatch[1].replace(/\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2}/g,"").trim();
-    nome = nome.replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
-    if(nome) document.getElementById("nc-nome").value = nome;
-  }
-  // Endereco — linhas com R , RUA, AV, PRACA, etc
-  for(var i=0;i<linhas.length;i++) {
-    var l = linhas[i].trim();
-    if(l.match(/^(R\.?\s|RUA\s|AV\.?\s|AVENIDA\s|PRACA\s|PC\.?\s|TRAV|ESTRADA|ROD|RODOVIA|R\s[A-Z])/i) && l.length > 5) {
-      // Remover CEP se estiver na mesma linha
-      var end = l.replace(/CEP[:\s]*\d{5}[\-\s]?\d{3}/i,"").trim();
-      document.getElementById("nc-endereco").value = end;
-      break;
+  if(cnpjMatch) document.getElementById("nc-cnpj").value = cnpjMatch[1].replace(/[^\d]/g,"");
+
+  if(isDisney && !isFerracini) {
+    // Formato Disney — nome apos "Cliente:"
+    var nomeMatch = txt.match(/Cliente[:\s]+([^\n\r\-]+)/i);
+    if(nomeMatch) {
+      var nome = nomeMatch[1].replace(/\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\/\.\s]?\d{4}[\-\.\s]?\d{2}/g,"").trim();
+      if(nome) document.getElementById("nc-nome").value = nome.replace(/\s+/g," ");
     }
-  }
-  // Cidade — padrao CIDADE - SC, CIDADE CEP ou linha separada
-  var cidMatch = txt.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÜ][A-ZÀÁÂÃÉÊÍÓÔÕÚÜ\s]+)\s*[\-–]\s*SC/i);
-  if(cidMatch) {
-    var cid = cidMatch[1].trim();
-    // Remover palavras indesejadas
-    if(cid.toLowerCase().indexOf("lauro")<0 && cid.toLowerCase().indexOf("itajai")<0 && cid.length < 40) {
-      document.getElementById("nc-cidade").value = cid;
-    } else {
-      document.getElementById("nc-cidade").value = cid;
+    // Endereco
+    for(var i=0;i<linhas.length;i++) {
+      if(linhas[i].match(/^(R\.?\s|RUA\s|AV\.?\s|PRACA\s|TRAV|ROD)/i) && linhas[i].length>5) {
+        document.getElementById("nc-endereco").value = linhas[i].replace(/CEP[:\s]*\d{5}[\-\s]?\d{3}/i,"").trim();
+        break;
+      }
     }
+    // Cidade
+    var cidMatch = txt.match(/([A-Z][A-Z\s]+)\s*[\-–]\s*SC/i);
+    if(cidMatch) document.getElementById("nc-cidade").value = cidMatch[1].trim();
+    // CEP
+    var cepMatch = txt.match(/CEP[:\s]*(\d{5}[\-\s]?\d{3})/i);
+    if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
+    // Telefone
+    var telMatch = txt.match(/Fone[:\s]*([\d\s\-\(\)\.]+)/i);
+    if(telMatch) {
+      var tn = telMatch[1].trim().match(/([\(\d][\d\s\-\(\)\.]{7,15})/);
+      document.getElementById("nc-tel").value = tn ? tn[1].trim() : telMatch[1].trim().split(/\s/)[0];
+    }
+    // Marca
+    document.getElementById("nc-marca").value = "disney";
+  } else {
+    // Formato Ferracini — nome na primeira linha de conteudo
+    // Nome geralmente e a primeira linha que nao e cabecalho
+    var palavrasIgnorar = ["CIDADE","CONDICAO","REPRESENTANTE","BAIRRO","CLIENTE","ENDERECO","CNPJ","TRANSPORTADORA","IMAGEM"];
+    for(var i=0;i<linhas.length;i++) {
+      var l = linhas[i];
+      var ignorar = false;
+      for(var j=0;j<palavrasIgnorar.length;j++) {
+        if(l.toUpperCase().indexOf(palavrasIgnorar[j])>=0) { ignorar=true; break; }
+      }
+      if(!ignorar && l.length > 5 && l.match(/^[A-Z]/) && !l.match(/^\d/) && !l.match(/@/)) {
+        document.getElementById("nc-nome").value = l;
+        break;
+      }
+    }
+    // Endereco — linha com PRACA, RUA, AV, etc
+    for(var i=0;i<linhas.length;i++) {
+      if(linhas[i].match(/^(PRACA|RUA|AV|R\.?\s|TRAV|ROD)/i) && linhas[i].length>5) {
+        document.getElementById("nc-endereco").value = linhas[i];
+        break;
+      }
+    }
+    // Cidade — linha que contenha SC e seja nome de cidade
+    for(var i=0;i<linhas.length;i++) {
+      if(linhas[i].match(/^[A-Z]/) && linhas[i].indexOf(" SC")<0 && linhas[i].indexOf("SC")<0 && linhas[i].length>3 && linhas[i].length<40) {
+        // Verificar se linha seguinte tem SC ou CEP
+        var prox = linhas[i+1]||"";
+        if(prox==="SC" || prox.match(/^SC\s*$/) || prox.match(/^\d{5}/)) {
+          document.getElementById("nc-cidade").value = linhas[i];
+          break;
+        }
+      }
+      // Ou cidade na mesma linha com SC
+      if(linhas[i].match(/SAO FRANCISCO|JOINVILLE|CHAPECO|BLUMENAU|ITAJAI|FLORIANOPOLIS|LAGES|CACADOR|JARAGUA/i)) {
+        document.getElementById("nc-cidade").value = linhas[i].replace(/SC/,"").trim();
+        break;
+      }
+    }
+    // CEP — 8 digitos seguidos ou com hifen
+    var cepMatch = txt.match(/\b(\d{8})\b/) || txt.match(/\b(\d{5}[\-]\d{3})\b/);
+    if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
+    // Telefone — numero com DDD
+    var telMatch = txt.match(/(\d{2}\s*\d{4}\s*\d{4})/);
+    if(telMatch) document.getElementById("nc-tel").value = telMatch[1];
+    // Marca — Ferracini
+    document.getElementById("nc-marca").value = "ferracini";
   }
-  // CEP
-  var cepMatch = txt.match(/CEP[:\s]*(\d{5}[\-\s]?\d{3})/i);
-  if(!cepMatch) cepMatch = txt.match(/\b(\d{5}[\-]\d{3})\b/);
-  if(cepMatch) document.getElementById("nc-cep").value = cepMatch[1];
-  // Telefone — pegar numero completo apos Fone:
-  var telMatch = txt.match(/Fone[:\s]*([\d\s\-\(\)\.]+)/i);
-  if(telMatch) {
-    var tel = telMatch[1].trim().replace(/\s+/g," ");
-    // Pegar apenas o primeiro numero completo
-    var telNum = tel.match(/([\(\d][\d\s\-\(\)\.]{7,15})/);
-    if(telNum) document.getElementById("nc-tel").value = telNum[1].trim();
-    else document.getElementById("nc-tel").value = tel.split(/\s/)[0];
-  }
-  // Email
-  var emailMatch = txt.match(/e[\-\s]?mail[:\s]*([\w\.\-]+@[\w\.\-]+\.\w+)/i);
-  if(!emailMatch) emailMatch = txt.match(/([\w\.\-]+@[\w\.\-]+\.\w+)/i);
-  if(emailMatch) document.getElementById("nc-email").value = emailMatch[1]||emailMatch[0];
+
+  // Email — igual nos dois
+  var emailMatch = txt.match(/([\w\.\-]+@[\w\.\-]+\.\w+)/i);
+  if(emailMatch) document.getElementById("nc-email").value = emailMatch[0];
+
   document.getElementById("import-text").value = "";
-  alert("Dados extraidos! Confira os campos.");
+  alert("Dados extraidos! Confira os campos e ajuste o que faltar.");
 }
 
 async function novaRede() {
