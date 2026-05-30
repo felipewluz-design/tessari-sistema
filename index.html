@@ -432,6 +432,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+window.addEventListener('load', function() {
 var SUPABASE_URL = "https://xroedpxscpwikfzmjxio.supabase.co";
 var SUPABASE_KEY = "sb_publishable_rJm-XhVdRxY0bCfd5PqERg_QDMzQMIL";
 var db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -2024,6 +2025,7 @@ window.onerror = function(msg, src, line, col, err) {
 };
 
 inicializar();
+}); // end window.addEventListener load
 </script>
 </body>
 </html>
