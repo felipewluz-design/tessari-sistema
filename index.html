@@ -105,9 +105,14 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 
 <!-- HOME -->
 <div id="s-home" class="scr on">
-  <div style="background:#0A2463;border-radius:12px;padding:18px;color:#fff;margin-bottom:16px">
-    <h2 style="font-size:18px;font-weight:600">Bom dia, Elias!</h2>
-    <p style="font-size:12px;opacity:.7;margin-top:2px">Resumo do mes atual</p>
+  <div style="background:#0A2463;border-radius:12px;padding:18px;color:#fff;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><h2 style="font-size:18px;font-weight:600">Bom dia, Elias!</h2><p style="font-size:12px;opacity:.7;margin-top:2px">Resumo financeiro</p></div>
+      <select id="periodo-dash" onchange="atualizarDashboard()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 8px;font-size:11px;font-family:system-ui,sans-serif;cursor:pointer">
+        <option value="mes">Este mes</option>
+        <option value="total">Historico completo</option>
+      </select>
+    </div>
   </div>
   <div class="sgrid">
     <div class="sbox" style="border-left:3px solid #003DA5"><div class="v" id="stat-ped-disney">0</div><div class="l">Pedidos Disney</div></div>
@@ -421,10 +426,18 @@ async function deletarPedidoDB(id){
 
 // ===== DASHBOARD =====
 async function atualizarDashboard(){
-  var mes=new Date().getMonth()+1,ano=new Date().getFullYear();
-  var ini=ano+"-"+String(mes).padStart(2,"0")+"-01",fim=ano+"-"+String(mes).padStart(2,"0")+"-31";
-  var rp=await db.from("pedidos").select("marca,valor_total,valor_comissao").gte("data_pedido",ini).lte("data_pedido",fim);
-  var rg=await db.from("gastos").select("valor").gte("data_gasto",ini).lte("data_gasto",fim);
+  var periodo=document.getElementById("periodo-dash");
+  var isMes=!periodo||periodo.value==="mes";
+  var rp,rg;
+  if(isMes){
+    var mes=new Date().getMonth()+1,ano=new Date().getFullYear();
+    var ini=ano+"-"+String(mes).padStart(2,"0")+"-01",fim=ano+"-"+String(mes).padStart(2,"0")+"-31";
+    rp=await db.from("pedidos").select("marca,valor_total,valor_comissao").gte("data_pedido",ini).lte("data_pedido",fim);
+    rg=await db.from("gastos").select("valor").gte("data_gasto",ini).lte("data_gasto",fim);
+  }else{
+    rp=await db.from("pedidos").select("marca,valor_total,valor_comissao");
+    rg=await db.from("gastos").select("valor");
+  }
   var td=0,tf=0,cd=0,cf=0,tg=0,pd=0,pf=0;
   if(rp.data)rp.data.forEach(function(p){if(p.marca==="disney"){td+=parseFloat(p.valor_total)||0;cd+=parseFloat(p.valor_comissao)||0;pd++;}else{tf+=parseFloat(p.valor_total)||0;cf+=parseFloat(p.valor_comissao)||0;pf++;}});
   if(rg.data)rg.data.forEach(function(g){tg+=parseFloat(g.valor)||0;});
@@ -435,7 +448,6 @@ async function atualizarDashboard(){
   document.getElementById("stat-comissao-disney").textContent="R$"+Math.round(cd);
   document.getElementById("stat-comissao-ferracini").textContent="R$"+Math.round(cf);
   document.getElementById("stat-comissao-liquida").textContent="R$"+Math.round(cd+cf-tg);
-  // Alerta clientes frios
   var frios=0;for(var i=0;i<clientes.length;i++){if(getStatus(clientes[i])==="vermelho")frios++;}
   var al=document.getElementById("alrt-clientes");
   if(frios>0){al.textContent=frios+" cliente(s) precisam de contato urgente.";al.style.display="block";}
