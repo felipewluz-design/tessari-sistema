@@ -262,13 +262,6 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
       </div>
       <div class="flbl">Previsao de faturamento</div>
       <input type="text" class="inp" id="fer-faturamento" placeholder="Ex: 1a quinzena julho/2026" />
-      <div class="flbl">Cond. pagamento cliente</div>
-      <select class="inp" id="fer-cond-cli">
-        <option value="30">30 dias</option>
-        <option value="60">60 dias</option>
-        <option value="30/60">30/60 dias</option>
-        <option value="avista">A vista</option>
-      </select>
     </div>
   </div>
   <div class="rsm"><h3>Resumo</h3><div id="rlines"></div><div class="rtot"><span>Total</span><span id="rtotal">R$ 0,00</span></div><p style="font-size:11px;opacity:.5;margin-top:4px" id="rpares">0 pares</p></div>
@@ -672,13 +665,12 @@ async function salvarPedido(){
     tp=parseInt(document.getElementById("fer-pares").value)||0;
     tv=parseFloat(document.getElementById("fer-valor").value)||0;
     if(tv===0){alert("Informe o valor total.");return;}
-    var tabFer=document.getElementById("fer-tabela")?document.getElementById("fer-tabela").value:"normal";
-    perc=tabFer==="normal"?6:4;
+    perc=parseFloat(document.getElementById("tipo-comissao").value)||6;
   }
   var obs=document.getElementById("obs").value;
   var btn=document.getElementById("btn-salvar-pedido");
   btn.textContent="Salvando...";btn.disabled=true;
-  var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:new Date().toISOString(),cond:marcaAtual==="ferracini"?document.getElementById("fer-cond-cli").value:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
+  var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:new Date().toISOString(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
   btn.textContent="Salvar pedido no sistema";btn.disabled=false;
   if(id){
     await carregarPedidos();await carregarClientes();popularSelectClientes();renderClientes("todos");atualizarDashboard();
