@@ -41,6 +41,12 @@ body{font-family:system-ui,sans-serif;background:#f4f5f7;color:#1a1a2e;max-width
 .sbox .v{font-size:20px;font-weight:700}
 .sbox .l{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
 .alrt{background:#fff8e1;border:1px solid #ffc107;border-radius:8px;padding:10px 12px;font-size:12px;color:#856404;margin-bottom:12px;display:none}
+.alrt-card{border-radius:10px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.alrt-card.a45{background:#fff8e1;border:1px solid #F59E0B}
+.alrt-card.a60{background:#fff3e0;border:1px solid #f97316}
+.alrt-card.a70{background:#fef2f2;border:1px solid #ef4444}
+.alrt-card.a80{background:#fdf2f8;border:1px solid #C8102E}
+.alrt-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;white-space:nowrap}
 .qagrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .qacard{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;cursor:pointer;text-align:left;font-family:system-ui,sans-serif}
 .qacard h3{font-size:13px;font-weight:600;margin-top:6px}
@@ -132,7 +138,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <span style="color:rgba(255,255,255,.7);font-size:12px">Comissao liquida do mes</span>
     <span style="color:#fff;font-size:16px;font-weight:700" id="stat-comissao-liquida">R$0</span>
   </div>
-  <div class="alrt" id="alrt-clientes"></div>
+  <div id="alertas-home"></div>
   <div class="qagrid">
     <button class="qacard" onclick="goTo('disney')">
       <div class="qaicon" style="background:#eef2ff;color:#003DA5">+</div>
@@ -454,10 +460,124 @@ async function atualizarDashboard(){
   document.getElementById("stat-comissao-disney").textContent="R$"+Math.round(cd);
   document.getElementById("stat-comissao-ferracini").textContent="R$"+Math.round(cf);
   document.getElementById("stat-comissao-liquida").textContent="R$"+Math.round(cd+cf-tg);
-  var frios=0;for(var i=0;i<clientes.length;i++){if(getStatus(clientes[i])==="vermelho")frios++;}
-  var al=document.getElementById("alrt-clientes");
-  if(frios>0){al.textContent=frios+" cliente(s) precisam de contato urgente.";al.style.display="block";}
-  else al.style.display="none";
+  renderAlertasHome();
+}
+
+var ALERTAS_NIVEIS = [
+  {dias:80, label:"80 dias", cor:"a80", txt:"Perda iminente", bg:"#C8102E", pill:"#fdf2f8", ptxt:"#C8102E"},
+  {dias:70, label:"70 dias", cor:"a70", txt:"Critico", bg:"#ef4444", pill:"#fef2f2", ptxt:"#ef4444"},
+  {dias:60, label:"60 dias", cor:"a60", txt:"Urgente", bg:"#f97316", pill:"#fff3e0", ptxt:"#f97316"},
+  {dias:45, label:"45 dias", cor:"a45", txt:"Esfriando", bg:"#F59E0B", pill:"#fff8e1", ptxt:"#F59E0B"}
+];
+
+function renderAlertasHome(){
+  var notifSilenciado=localStorage.getItem("repgo-notif-off")==="1";
+  var el=document.getElementById("alertas-home");
+  if(!el)return;
+
+  // Notif push permission button
+  var pushHtml="";
+  if(!notifSilenciado && "Notification" in window && Notification.permission==="default"){
+    pushHtml="<div style='background:#f0f4ff;border:1px solid #c7d7f7;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between'>"+
+      "<div><div style='font-size:12px;font-weight:600;color:#0A2463'>Ativar notificacoes</div>"+
+      "<div style='font-size:11px;color:#6b7280;margin-top:2px'>Avisos automaticos de clientes inativos</div></div>"+
+      "<button onclick='pedirPermissaoNotif()' style='background:#0A2463;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:system-ui'>Ativar</button></div>";
+  }
+
+  // Silenciar toggle
+  var silHtml="<div style='display:flex;justify-content:flex-end;margin-bottom:6px'>"+
+    "<button onclick='toggleSilenciarAlertas()' style='background:none;border:none;font-size:11px;color:#6b7280;cursor:pointer;font-family:system-ui'>"+
+    (notifSilenciado?"🔔 Ativar alertas":"🔕 Silenciar alertas")+"</button></div>";
+
+  if(notifSilenciado){el.innerHTML=silHtml;return;}
+
+  // Agrupar clientes por nivel
+  var grupos={45:[],60:[],70:[],80:[]};
+  clientes.forEach(function(c){
+    if(!c.ultimoPedido)return;
+    var dias=Math.floor((Date.now()-new Date(c.ultimoPedido).getTime())/86400000);
+    if(dias>=80) grupos[80].push({c:c,dias:dias});
+    else if(dias>=70) grupos[70].push({c:c,dias:dias});
+    else if(dias>=60) grupos[60].push({c:c,dias:dias});
+    else if(dias>=45) grupos[45].push({c:c,dias:dias});
+  });
+
+  var total=grupos[45].length+grupos[60].length+grupos[70].length+grupos[80].length;
+  if(total===0){el.innerHTML="";return;}
+
+  var html=silHtml+pushHtml;
+
+  ALERTAS_NIVEIS.forEach(function(n){
+    var lista=grupos[n.dias];
+    if(!lista.length)return;
+    lista.sort(function(a,b){return b.dias-a.dias;});
+    var nomes="";
+    lista.slice(0,3).forEach(function(x){nomes+=x.c.nome+" ("+x.dias+"d)  ";});
+    if(lista.length>3)nomes+="+"+(lista.length-3)+" mais";
+    html+="<div class=\'alrt-card "+n.cor+"\' data-nav=\'clientes\' onclick=\'goTo(this.dataset.nav)\'>";
+    html+="<div style=\'flex:1\'>";
+    html+="<div style=\'display:flex;align-items:center;gap:8px;margin-bottom:4px\'>";
+    html+="<span class=\'alrt-pill\' style=\'background:"+n.pill+";color:"+n.ptxt+"\'>"+n.label+"</span>";
+    html+="<span style=\'font-size:12px;font-weight:600;color:#374151\'>"+n.txt+" — "+lista.length+" cliente"+(lista.length>1?"s":"")+"</span></div>";
+    html+="<div style=\'font-size:11px;color:#6b7280\'>"+nomes+"</div>";
+    html+="</div>";
+    html+="<span style=\'color:"+n.bg+";font-size:18px;margin-left:8px\'>›</span>";
+    html+="</div>";
+  });
+
+  el.innerHTML=html;
+
+  // Notificacoes push
+  if("Notification" in window && Notification.permission==="granted"){
+    enviarNotifPush(grupos);
+  }
+}
+
+function toggleSilenciarAlertas(){
+  var atual=localStorage.getItem("repgo-notif-off")==="1";
+  localStorage.setItem("repgo-notif-off", atual?"0":"1");
+  renderAlertasHome();
+}
+
+function pedirPermissaoNotif(){
+  if(!("Notification" in window))return;
+  Notification.requestPermission().then(function(p){
+    if(p==="granted") enviarNotifPush(null);
+    renderAlertasHome();
+  });
+}
+
+function enviarNotifPush(grupos){
+  var jaNotificou=JSON.parse(localStorage.getItem("repgo-notif-enviadas")||"{}");
+  var hoje=dataHojeBR();
+  if(jaNotificou.data===hoje)return;
+
+  if(!grupos){
+    grupos={45:[],60:[],70:[],80:[]};
+    clientes.forEach(function(c){
+      if(!c.ultimoPedido)return;
+      var dias=Math.floor((Date.now()-new Date(c.ultimoPedido).getTime())/86400000);
+      if(dias>=80) grupos[80].push(c);
+      else if(dias>=70) grupos[70].push(c);
+      else if(dias>=60) grupos[60].push(c);
+      else if(dias>=45) grupos[45].push(c);
+    });
+  }
+
+  var msgs=[];
+  if(grupos[80].length) msgs.push(grupos[80].length+" cliente"+(grupos[80].length>1?"s":"")+" ha 80+ dias sem pedido!");
+  if(grupos[70].length) msgs.push(grupos[70].length+" cliente"+(grupos[70].length>1?"s":"")+" ha 70+ dias.");
+  if(grupos[60].length) msgs.push(grupos[60].length+" cliente"+(grupos[60].length>1?"s":"")+" ha 60+ dias.");
+  if(grupos[45].length) msgs.push(grupos[45].length+" cliente"+(grupos[45].length>1?"s":"")+" ha 45+ dias.");
+
+  if(msgs.length){
+    new Notification("RepGo — Clientes precisam de visita", {
+      body: msgs.join(" | "),
+      icon: "/icon-192.png",
+      badge: "/icon-192.png"
+    });
+    localStorage.setItem("repgo-notif-enviadas", JSON.stringify({data:hoje}));
+  }
 }
 
 // ===== NAVEGACAO =====
