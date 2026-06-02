@@ -570,6 +570,8 @@ async function entrarNoApp(user){
   var sauda=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
   var el=document.querySelector("#s-home h2");
   if(el)el.textContent=sauda+", "+nome+"!";
+  // Registrar ultimo acesso
+  db.from("perfil_rep").update({ultimo_acesso:new Date().toISOString()}).eq("user_id",user.id);
   // Carregar marcas do rep
   var rm=await db.from("marcas_rep").select("*").eq("user_id",user.id);
   marcasRep=rm.data||[];
