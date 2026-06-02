@@ -14,8 +14,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}html{height:-webkit-fill-available}
 body{font-family:system-ui,sans-serif;background:#f4f5f7;color:#1a1a2e;max-width:480px;margin:0 auto;min-height:100vh;min-height:-webkit-fill-available}
-.app{background:#fff;min-height:100vh;padding-bottom:80px}
-.hdr{background:#0A2463;padding:16px 20px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
+.app{background:#fff;min-height:100vh;min-height:-webkit-fill-available;padding-bottom:80px;overflow-x:hidden}
+.hdr{background:#0A2463;padding:16px 20px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;position:relative}
 .hdr h1{color:#fff;font-size:15px;font-weight:600}
 .hdr p{color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px}
 .back-btn{background:none;border:none;color:rgba(255,255,255,0.8);font-size:20px;cursor:pointer;padding:0 8px 0 0}
@@ -171,7 +171,11 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 <div class="hdr">
   <div><h1 id="hdr-title">RepGo</h1><p id="hdate"></p></div>
   <button class="back-btn" id="back-btn" style="display:none" onclick="voltarTela()">&#8592;</button>
-  <button id="logout-btn" onclick="fazerLogout()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-family:system-ui;display:none">Sair</button>
+  <button id="logout-btn" onclick="toggleMenu()" style="background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;display:none;line-height:1;padding:4px 8px">⚙️</button>
+  <div id="settings-menu" style="display:none;position:absolute;top:56px;right:12px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:180px;overflow:hidden">
+    <button onclick="goToMarcas()" style="width:100%;padding:14px 16px;background:none;border:none;border-bottom:1px solid #f0f0f0;font-size:15px;font-weight:600;color:#0A2463;cursor:pointer;font-family:system-ui;text-align:left">Minhas marcas</button>
+    <button onclick="fazerLogout()" style="width:100%;padding:14px 16px;background:none;border:none;font-size:15px;font-weight:600;color:#C8102E;cursor:pointer;font-family:system-ui;text-align:left">Sair</button>
+  </div>
 </div>
 
 <!-- HOME -->
@@ -347,6 +351,28 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   <button class="btn btn-disney" style="margin-top:12px" onclick="gerar()">Gerar pedido formatado</button>
   <button class="btn btn-green" style="margin-top:6px" id="btn-salvar-pedido" onclick="salvarPedido()">Salvar pedido no sistema</button>
   <div class="pout" id="pedout"><div class="pohd"><h4>Pedido gerado</h4><button class="cpbtn" onclick="copiar()">Copiar</button></div><pre id="pedtxt"></pre></div>
+</div>
+
+<!-- MARCAS -->
+<div id="s-marcas" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div><h2 style="font-size:17px;font-weight:600">Minhas marcas</h2><p style="font-size:12px;color:#6b7280">Marcas que voce representa</p></div>
+    <button class="btn btn-blue btn-sm" onclick="abrirAddMarca()">+ Nova</button>
+  </div>
+  <div id="lista-marcas-rep"></div>
+  <!-- Form add/edit marca -->
+  <div id="form-marca" style="display:none;background:#f0f4ff;border:1.5px solid #0A2463;border-radius:12px;padding:16px;margin-top:12px">
+    <h3 style="font-size:15px;font-weight:600;color:#0A2463;margin-bottom:12px" id="form-marca-titulo">Nova marca</h3>
+    <div class="flbl">Nome da marca</div>
+    <input type="text" class="inp" id="marca-nome-input" placeholder="Ex: Via Uno" />
+    <div class="flbl" style="margin-top:12px">Comissoes (%)</div>
+    <div id="marca-comissoes-list"></div>
+    <button onclick="addComissaoForm()" style="background:none;border:none;color:#0A2463;font-size:14px;font-weight:600;cursor:pointer;padding:8px 0;font-family:system-ui">+ Adicionar % comissao</button>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-blue" onclick="salvarMarca()" style="flex:1">Salvar</button>
+      <button class="btn btn-dash" onclick="fecharFormMarca()" style="flex:1">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <!-- GASTOS -->
@@ -867,12 +893,22 @@ function enviarNotifPush(grupos){
 function goTo(id){
   document.querySelectorAll(".scr").forEach(function(s){s.classList.remove("on");});
   document.querySelectorAll(".bnav button").forEach(function(b){b.classList.remove("on");});
-  document.getElementById("s-"+id).classList.add("on");
+  var tela=document.getElementById("s-"+id);
+  if(!tela)return;
+  tela.classList.add("on");
   var nb=document.getElementById("nb-"+id);if(nb)nb.classList.add("on");
-  var sub=["novo-cliente","detalhe-cliente"];
+  var sub=["novo-cliente","detalhe-cliente","marcas"];
   document.getElementById("back-btn").style.display=sub.indexOf(id)>=0?"block":"none";
   if(sub.indexOf(id)<0)telaAnterior=id;
-  window.scrollTo(0,0);
+  // Reset scroll iOS
+  document.body.scrollTop=0;
+  document.documentElement.scrollTop=0;
+  window.scrollTo({top:0,left:0,behavior:"instant"});
+  // Force repaint para iOS
+  document.querySelector(".app").style.minHeight="";
+  requestAnimationFrame(function(){
+    document.querySelector(".app").style.minHeight="100vh";
+  });
 }
 function voltarTela(){goTo(telaAnterior||"clientes");}
 
@@ -1240,6 +1276,126 @@ function irCadastrar(d){
   if(d.cep)document.getElementById("nc-cep").value=d.cep;
   if(d.telefone)document.getElementById("nc-tel").value=d.telefone;
   if(d.email)document.getElementById("nc-email").value=d.email;
+}
+
+// ===== SETTINGS MENU =====
+function toggleMenu(){
+  var m=document.getElementById("settings-menu");
+  m.style.display=m.style.display==="block"?"none":"block";
+}
+document.addEventListener("click",function(e){
+  var menu=document.getElementById("settings-menu");
+  var btn=document.getElementById("logout-btn");
+  if(menu&&btn&&!menu.contains(e.target)&&e.target!==btn){
+    menu.style.display="none";
+  }
+});
+
+function goToMarcas(){
+  document.getElementById("settings-menu").style.display="none";
+  renderListaMarcas();
+  goTo("marcas");
+}
+
+// ===== MARCAS REP =====
+var editMarcaId=null, formComissoes=[];
+
+function renderListaMarcas(){
+  var el=document.getElementById("lista-marcas-rep");
+  if(!el)return;
+  if(!marcasRep.length){
+    el.innerHTML="<div style='text-align:center;color:#6b7280;font-size:14px;padding:24px 0'>Nenhuma marca cadastrada</div>";
+    return;
+  }
+  el.innerHTML=marcasRep.map(function(m){
+    return"<div style='background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:10px'>"+
+      "<div style='display:flex;justify-content:space-between;align-items:center'>"+
+      "<div style='font-size:16px;font-weight:700;color:#0A2463'>"+m.nome+"</div>"+
+      "<div style='display:flex;gap:8px'>"+
+      "<button data-mid='"+m.id+"' onclick='editarMarca(this.dataset.mid)' style='background:none;border:1px solid #e5e7eb;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:system-ui;color:#0A2463'>Editar</button>"+
+      "<button data-mid='"+m.id+"' onclick='deletarMarca(this.dataset.mid)' style='background:none;border:1px solid #fca5a5;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:system-ui;color:#C8102E'>×</button>"+
+      "</div></div>"+
+      "<div style='margin-top:8px;font-size:13px;color:#6b7280'>Normal: "+m.comissao_normal+"% · Especial: "+m.comissao_especial+"%</div>"+
+      "</div>";
+  }).join("");
+}
+
+function abrirAddMarca(){
+  editMarcaId=null;
+  formComissoes=[{label:"Normal",valor:6},{label:"Especial",valor:4}];
+  document.getElementById("marca-nome-input").value="";
+  document.getElementById("form-marca-titulo").textContent="Nova marca";
+  renderFormComissoes();
+  document.getElementById("form-marca").style.display="block";
+  document.getElementById("form-marca").scrollIntoView({behavior:"smooth"});
+}
+
+function editarMarca(id){
+  var m=marcasRep.find(function(x){return x.id===id;});
+  if(!m)return;
+  editMarcaId=id;
+  formComissoes=[{label:"Normal",valor:m.comissao_normal},{label:"Especial",valor:m.comissao_especial}];
+  document.getElementById("marca-nome-input").value=m.nome;
+  document.getElementById("form-marca-titulo").textContent="Editar marca";
+  renderFormComissoes();
+  document.getElementById("form-marca").style.display="block";
+  document.getElementById("form-marca").scrollIntoView({behavior:"smooth"});
+}
+
+function addComissaoForm(){
+  formComissoes.push({label:"",valor:0});
+  renderFormComissoes();
+}
+
+function renderFormComissoes(){
+  var el=document.getElementById("marca-comissoes-list");
+  el.innerHTML=formComissoes.map(function(c,i){
+    return"<div style='display:flex;gap:8px;align-items:center;margin-bottom:8px'>"+
+      "<input type='text' value='"+c.label+"' placeholder='Ex: Normal' oninput='formComissoes["+i+"].label=this.value' style='flex:2;font-size:15px;border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-family:system-ui;outline:none' />"+
+      "<input type='number' value='"+c.valor+"' placeholder='%' oninput='formComissoes["+i+"].valor=parseFloat(this.value)||0' style='flex:1;font-size:15px;border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 8px;font-family:system-ui;outline:none' />"+
+      "<button onclick='formComissoes.splice("+i+",1);renderFormComissoes()' style='background:none;border:none;color:#C8102E;font-size:22px;cursor:pointer;padding:0;line-height:1'>×</button>"+
+      "</div>";
+  }).join("");
+}
+
+function fecharFormMarca(){
+  document.getElementById("form-marca").style.display="none";
+  editMarcaId=null;
+}
+
+async function salvarMarca(){
+  var nome=document.getElementById("marca-nome-input").value.trim();
+  if(!nome){alert("Informe o nome da marca.");return;}
+  var user=(await db.auth.getUser()).data.user;
+  var normal=formComissoes[0]?formComissoes[0].valor:6;
+  var especial=formComissoes[1]?formComissoes[1].valor:4;
+  var btn=document.querySelector("#form-marca .btn-blue");
+  btn.textContent="Salvando...";btn.disabled=true;
+  if(editMarcaId){
+    await db.from("marcas_rep").update({nome:nome,comissao_normal:normal,comissao_especial:especial}).eq("id",editMarcaId);
+  }else{
+    await db.from("marcas_rep").insert({user_id:user.id,nome:nome,comissao_normal:normal,comissao_especial:especial});
+  }
+  btn.textContent="Salvar";btn.disabled=false;
+  // Reload marcas
+  var rm=await db.from("marcas_rep").select("*").eq("user_id",user.id);
+  marcasRep=rm.data||[];
+  renderMarcasBtns();
+  renderListaMarcas();
+  fecharFormMarca();
+  // Esconde alerta sem marcas se tinha
+  var alertaEl=document.getElementById("alerta-sem-marcas");
+  if(alertaEl&&marcasRep.length)alertaEl.style.display="none";
+}
+
+async function deletarMarca(id){
+  if(!confirm("Excluir esta marca?"))return;
+  await db.from("marcas_rep").delete().eq("id",id);
+  var user=(await db.auth.getUser()).data.user;
+  var rm=await db.from("marcas_rep").select("*").eq("user_id",user.id);
+  marcasRep=rm.data||[];
+  renderMarcasBtns();
+  renderListaMarcas();
 }
 
 // ===== GASTOS =====
