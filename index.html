@@ -107,6 +107,8 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 .login-box{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:400px}
 .login-logo{text-align:center;margin-bottom:24px}
 .login-logo .r{font-size:52px;font-weight:800;color:#fff;line-height:1}
+.onb-marca{background:#f4f5f7;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.onb-marca input{border:none;background:none;font-size:14px;font-family:system-ui,sans-serif;outline:none;flex:1}
 .login-logo .dot{width:16px;height:16px;background:#1D9E75;border-radius:50%;display:inline-block;margin-left:4px;vertical-align:middle;margin-bottom:8px}
 .login-logo p{color:rgba(255,255,255,.6);font-size:13px;margin-top:6px}
 .login-err{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;font-size:12px;color:#C8102E;margin-bottom:12px;display:none}
@@ -147,9 +149,26 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     </div>
   </div>
 </div>
+
+<!-- ONBOARDING -->
+<div id="onboarding-wrap" class="login-wrap" style="display:none">
+  <div class="login-logo">
+    <div><span class="r">R</span><span class="dot"></span></div>
+    <p>Bem-vindo ao RepGo!</p>
+  </div>
+  <div class="login-box">
+    <h2 style="font-size:18px;font-weight:700;color:#0A2463;margin-bottom:4px">Suas marcas</h2>
+    <p style="font-size:12px;color:#6b7280;margin-bottom:16px">Adicione as marcas que voce representa e a comissao de cada uma</p>
+    <div id="onb-lista-marcas"></div>
+    <button onclick="onbAddMarca()" style="width:100%;padding:10px;border:1.5px dashed #e5e7eb;border-radius:8px;background:#fff;font-size:13px;color:#6b7280;cursor:pointer;font-family:system-ui;margin-bottom:16px">+ Adicionar marca</button>
+    <div class="login-err" id="onb-err"></div>
+    <button class="btn btn-blue" onclick="salvarOnboarding()">Comecar a usar</button>
+  </div>
+</div>
+
 <div class="app">
 <div class="hdr">
-  <div><h1 id="hdr-title">Tessari Representacoes</h1><p id="hdate"></p></div>
+  <div><h1 id="hdr-title">RepGo</h1><p id="hdate"></p></div>
   <button class="back-btn" id="back-btn" style="display:none" onclick="voltarTela()">&#8592;</button>
   <button id="logout-btn" onclick="fazerLogout()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-family:system-ui;display:none">Sair</button>
 </div>
@@ -396,6 +415,73 @@ var catN={combustivel:"Combustivel",alimentacao:"Alimentacao",pedagio:"Pedagio",
 function dataHojeBR(){var d=new Date(),off=d.getTimezoneOffset(),l=new Date(d.getTime()-off*60000);return l.toISOString().split("T")[0];}
 function dataBR(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0];}
 
+// ===== ONBOARDING =====
+var onbMarcas=[];
+
+async function verificarOnboarding(user){
+  var r=await db.from("perfil_rep").select("onboarding_completo").eq("user_id",user.id).single();
+  if(r.data&&r.data.onboarding_completo){
+    entrarNoApp(user);
+  }else{
+    mostrarOnboarding();
+  }
+}
+
+function mostrarOnboarding(){
+  document.getElementById("login-wrap").style.display="none";
+  document.getElementById("onboarding-wrap").style.display="flex";
+  onbMarcas=[];
+  onbAddMarca();
+  onbRender();
+}
+
+function onbAddMarca(){
+  onbMarcas.push({nome:"",comissao_normal:6,comissao_especial:4});
+  onbRender();
+}
+
+function onbRender(){
+  var el=document.getElementById("onb-lista-marcas");
+  el.innerHTML=onbMarcas.map(function(m,i){
+    return"<div class='onb-marca'>"+
+      "<div style='flex:1'>"+
+      "<input type='text' placeholder='Nome da marca (ex: Via Uno)' value='"+m.nome+"' oninput='onbMarcas["+i+"].nome=this.value' style='width:100%;font-size:16px;border:none;background:none;outline:none;font-family:system-ui' />"+
+      "<div style='display:flex;gap:8px;margin-top:8px'>"+
+      "<div style='flex:1'>"+
+      "<div style='font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;margin-bottom:2px'>Comissao normal %</div>"+
+      "<input type='number' value='"+m.comissao_normal+"' oninput='onbMarcas["+i+"].comissao_normal=parseFloat(this.value)||0' style='width:100%;font-size:16px;border:1.5px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-family:system-ui;outline:none' />"+
+      "</div>"+
+      "<div style='flex:1'>"+
+      "<div style='font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;margin-bottom:2px'>Comissao especial %</div>"+
+      "<input type='number' value='"+m.comissao_especial+"' oninput='onbMarcas["+i+"].comissao_especial=parseFloat(this.value)||0' style='width:100%;font-size:16px;border:1.5px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-family:system-ui;outline:none' />"+
+      "</div></div></div>"+
+      "<button onclick='onbRemMarca("+i+")' style='background:none;border:none;color:#C8102E;font-size:22px;cursor:pointer;padding:0 0 0 10px;line-height:1'>×</button>"+
+      "</div>";
+  }).join("");
+}
+
+function onbRemMarca(i){
+  onbMarcas.splice(i,1);
+  onbRender();
+}
+
+async function salvarOnboarding(){
+  var err=document.getElementById("onb-err");
+  var validas=onbMarcas.filter(function(m){return m.nome.trim();});
+  if(!validas.length){err.textContent="Adicione pelo menos uma marca.";err.style.display="block";return;}
+  var btn=document.querySelector("#onboarding-wrap .btn-blue");
+  btn.textContent="Salvando...";btn.disabled=true;
+  var user=(await db.auth.getUser()).data.user;
+  // Salvar marcas
+  var marcasDB=validas.map(function(m){return{user_id:user.id,nome:m.nome.trim(),comissao_normal:m.comissao_normal,comissao_especial:m.comissao_especial};});
+  await db.from("marcas_rep").insert(marcasDB);
+  // Marcar onboarding completo
+  await db.from("perfil_rep").upsert({user_id:user.id,onboarding_completo:true},{onConflict:"user_id"});
+  btn.textContent="Comecar a usar";btn.disabled=false;
+  document.getElementById("onboarding-wrap").style.display="none";
+  entrarNoApp(user);
+}
+
 function init(){
   try{
     db=supabase.createClient(SB_URL,SB_KEY);
@@ -406,7 +492,7 @@ function init(){
   // Verificar sessao
   db.auth.getSession().then(function(r){
     if(r.data&&r.data.session){
-      entrarNoApp(r.data.session.user);
+      verificarOnboarding(r.data.session.user);
     }else{
       mostrarTelaLogin();
     }
@@ -414,7 +500,7 @@ function init(){
   // Listener de mudanca de auth
   db.auth.onAuthStateChange(function(event,session){
     if(event==="SIGNED_IN"&&session){
-      entrarNoApp(session.user);
+      verificarOnboarding(session.user);
     }else if(event==="SIGNED_OUT"){
       mostrarTelaLogin();
     }
