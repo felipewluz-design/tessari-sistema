@@ -315,13 +315,22 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <div><div class="flbl">Cond. pagamento</div>
     <select class="inp" id="cond" onchange="updCond()">
       <option value="AVISTA">A vista</option>
+      <option value="30">30 dias</option>
       <option value="30DD">30 DD</option>
+      <option value="60">60 dias</option>
+      <option value="60DD">60 DD</option>
+      <option value="90">90 dias</option>
+      <option value="90DD">90 DD</option>
+      <option value="120">120 dias</option>
+      <option value="150">150 dias</option>
+      <option value="180">180 dias</option>
       <option value="30/60">30/60 DD</option>
       <option value="30/60/90" selected>30/60/90 DD</option>
       <option value="30/60/90/120">30/60/90/120 DD</option>
+      <option value="30/60/90/120/150">30/60/90/120/150 DD</option>
       <option value="60/90/120">60/90/120 DD</option>
-      <option value="60DD">60 DD</option>
-      <option value="90DD">90 DD</option>
+      <option value="60/90/120/150">60/90/120/150 DD</option>
+      <option value="28/56/84">28/56/84 DD</option>
     </select></div>
     <div><div class="flbl">Prev. entrega</div><input type="date" class="inp" id="entrega" /></div>
   </div>
@@ -570,8 +579,6 @@ async function entrarNoApp(user){
   var sauda=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
   var el=document.querySelector("#s-home h2");
   if(el)el.textContent=sauda+", "+nome+"!";
-  // Registrar ultimo acesso
-  db.from("perfil_rep").update({ultimo_acesso:new Date().toISOString()}).eq("user_id",user.id);
   // Carregar marcas do rep
   var rm=await db.from("marcas_rep").select("*").eq("user_id",user.id);
   marcasRep=rm.data||[];
@@ -1262,7 +1269,24 @@ async function lerPDF(event){
         renderItens();atuResumo();
       }
       if(marca==="ferracini"){document.getElementById("fer-num").value=p.numero||"";document.getElementById("fer-pares").value=p.total_pares||0;document.getElementById("fer-valor").value=p.valor_total||0;}
-      if(p.condicao_pagamento){var cs=document.getElementById("cond");var cl=p.condicao_pagamento.replace(/\s*DIAS/gi,"").replace(/\s*DD/gi,"").trim();for(var i=0;i<cs.options.length;i++){if(cs.options[i].value.replace(/DD/i,"")=== cl){cs.value=cs.options[i].value;break;}}}
+      if(p.condicao_pagamento){
+  var cs=document.getElementById("cond");
+  // Normaliza: remove DD, DIAS, espacos, deixa so numeros e barras
+  var cl=p.condicao_pagamento.toUpperCase().replace(/\s*DD/g,"").replace(/\s*DIAS/g,"").replace(/\s/g,"").trim();
+  var found=false;
+  // Tenta match exato primeiro
+  for(var i=0;i<cs.options.length;i++){
+    var ov=cs.options[i].value.toUpperCase().replace(/DD/g,"").replace(/\s/g,"").trim();
+    if(ov===cl){cs.value=cs.options[i].value;found=true;break;}
+  }
+  // Se nao achou, tenta match parcial
+  if(!found){
+    for(var i=0;i<cs.options.length;i++){
+      var ov=cs.options[i].value.toUpperCase().replace(/DD/g,"").replace(/\s/g,"").trim();
+      if(cl.indexOf(ov)>=0||ov.indexOf(cl)>=0){cs.value=cs.options[i].value;found=true;break;}
+    }
+  }
+}
       if(stxt.innerHTML.indexOf("Cadastrar")<0)stxt.textContent="Importado: "+(p.total_pares||0)+" pares — R$ "+((p.valor_total||0).toFixed(2).replace(".",","));
     }
     document.getElementById("pdf-upload").value="";
