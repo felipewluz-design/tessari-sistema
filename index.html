@@ -12,8 +12,8 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f4f5f7;color:#1a1a2e;max-width:480px;margin:0 auto;min-height:100vh}
+*{box-sizing:border-box;margin:0;padding:0}html{height:-webkit-fill-available}
+body{font-family:system-ui,sans-serif;background:#f4f5f7;color:#1a1a2e;max-width:480px;margin:0 auto;min-height:100vh;min-height:-webkit-fill-available}
 .app{background:#fff;min-height:100vh;padding-bottom:80px}
 .hdr{background:#0A2463;padding:16px 20px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
 .hdr h1{color:#fff;font-size:15px;font-weight:600}
@@ -103,7 +103,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 .mitem{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .mitem:hover{background:#f9fafb}
 .mref{font-size:13px;font-weight:700;font-family:monospace}
-.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0A2463;padding:24px}
+.login-wrap{min-height:100vh;min-height:-webkit-fill-available;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0A2463;padding:24px}
 .login-box{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:400px}
 .login-logo{text-align:center;margin-bottom:24px}
 .login-logo .r{font-size:52px;font-weight:800;color:#fff;line-height:1}
