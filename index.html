@@ -423,8 +423,9 @@ async function atualizarDashboard(){
   var isMes=!periodo||periodo.value==="mes";
   var rp,rg;
   if(isMes){
-    var mes=new Date().getMonth()+1,ano=new Date().getFullYear();
-    var ini=ano+"-"+String(mes).padStart(2,"0")+"-01",fim=ano+"-"+String(mes).padStart(2,"0")+"-31";
+    var agora=new Date(),mes=agora.getMonth()+1,ano=agora.getFullYear();
+    var ultimoDia=new Date(ano,agora.getMonth()+1,0).getDate();
+    var ini=ano+"-"+String(mes).padStart(2,"0")+"-01",fim=ano+"-"+String(mes).padStart(2,"0")+"-"+String(ultimoDia).padStart(2,"0");
     rp=await db.from("pedidos").select("marca,valor_total,valor_comissao").gte("data_pedido",ini).lte("data_pedido",fim);
     rg=await db.from("gastos").select("valor").gte("data_gasto",ini).lte("data_gasto",fim);
   }else{
