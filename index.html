@@ -517,7 +517,7 @@ function renderListaCidades(){
   el.innerHTML=nomes.map(function(cidade){
     var d=cidades[cidade];
     var alerta=d.inativos>0?"<span style='background:#fef2f2;color:#C8102E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:6px'>"+d.inativos+" inativ"+(d.inativos>1?"os":"o")+"</span>":"";
-    return"<div onclick='verCidade(""+cidade.replace(/"/g,"&quot;")+"")'  style='background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center'>"+
+    return"<div data-cidade='"+cidade+"' onclick='verCidade(this.dataset.cidade)' style='background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center'>"+
       "<div><div style='font-size:14px;font-weight:600'>"+cidade+alerta+"</div>"+
       "<div style='font-size:12px;color:#6b7280;margin-top:3px'>"+d.total+" cliente"+(d.total>1?"s":"")+"</div></div>"+
       "<span style='color:#6b7280;font-size:18px'>›</span></div>";
