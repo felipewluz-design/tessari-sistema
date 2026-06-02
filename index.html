@@ -150,12 +150,18 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <button class="btn btn-blue btn-sm" onclick="goTo('novo-cliente')">+ Novo</button>
   </div>
   <div class="ftabs">
-    <button class="ftab on" onclick="filtClientes('todos',this)">Todos</button>
+    <button class="ftab on" id="ftab-todos" onclick="filtClientes('todos',this)">Todos</button>
     <button class="ftab" onclick="filtClientes('verde',this)">Ativos</button>
     <button class="ftab" onclick="filtClientes('amarelo',this)">Mornos</button>
     <button class="ftab" onclick="filtClientes('vermelho',this)">Frios</button>
+    <button class="ftab" onclick="filtCidades(this)">&#128205; Cidades</button>
   </div>
   <div id="lista-clientes"></div>
+  <div id="s-cidade" style="display:none">
+    <button onclick="voltarCidades()" style="background:none;border:none;color:#0A2463;font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px;display:flex;align-items:center;gap:4px">&#8592; Todas as cidades</button>
+    <div id="cidade-header" style="background:#0A2463;border-radius:12px;padding:14px 16px;color:#fff;margin-bottom:12px"></div>
+    <div id="lista-cidade-clientes"></div>
+  </div>
 </div>
 
 <!-- NOVO CLIENTE -->
@@ -480,7 +486,81 @@ function renderClientes(filtro){
   }).join("");
 }
 
-function filtClientes(f,btn){document.querySelectorAll(".ftab").forEach(function(t){t.classList.remove("on");});btn.classList.add("on");renderClientes(f);}
+function filtClientes(f,btn){
+  document.querySelectorAll(".ftab").forEach(function(t){t.classList.remove("on");});
+  btn.classList.add("on");
+  document.getElementById("lista-clientes").style.display="block";
+  document.getElementById("s-cidade").style.display="none";
+  renderClientes(f);
+}
+
+function filtCidades(btn){
+  document.querySelectorAll(".ftab").forEach(function(t){t.classList.remove("on");});
+  btn.classList.add("on");
+  document.getElementById("s-cidade").style.display="none";
+  renderListaCidades();
+}
+
+function renderListaCidades(){
+  var el=document.getElementById("lista-clientes");
+  el.style.display="block";
+  var cidades={};
+  clientes.forEach(function(c){
+    var cidade=(c.cidade||"Sem cidade").trim();
+    if(!cidades[cidade])cidades[cidade]={total:0,inativos:0};
+    cidades[cidade].total++;
+    var st=getStatus(c);
+    if(st==="amarelo"||st==="vermelho")cidades[cidade].inativos++;
+  });
+  var nomes=Object.keys(cidades).sort();
+  if(!nomes.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:24px 0'>Nenhum cliente cadastrado</p>";return;}
+  el.innerHTML=nomes.map(function(cidade){
+    var d=cidades[cidade];
+    var alerta=d.inativos>0?"<span style='background:#fef2f2;color:#C8102E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:6px'>"+d.inativos+" inativ"+(d.inativos>1?"os":"o")+"</span>":"";
+    return"<div onclick='verCidade(""+cidade.replace(/"/g,"&quot;")+"")'  style='background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center'>"+
+      "<div><div style='font-size:14px;font-weight:600'>"+cidade+alerta+"</div>"+
+      "<div style='font-size:12px;color:#6b7280;margin-top:3px'>"+d.total+" cliente"+(d.total>1?"s":"")+"</div></div>"+
+      "<span style='color:#6b7280;font-size:18px'>›</span></div>";
+  }).join("");
+}
+
+function verCidade(cidade){
+  document.getElementById("lista-clientes").style.display="none";
+  var sc=document.getElementById("s-cidade");
+  sc.style.display="block";
+  var lista=clientes.filter(function(c){return(c.cidade||"Sem cidade").trim()===cidade;});
+  lista.sort(function(a,b){
+    var da=a.ultimoPedido?Math.floor((Date.now()-new Date(a.ultimoPedido).getTime())/86400000):99999;
+    var db2=b.ultimoPedido?Math.floor((Date.now()-new Date(b.ultimoPedido).getTime())/86400000):99999;
+    return db2-da;
+  });
+  var inativos=lista.filter(function(c){var st=getStatus(c);return st==="amarelo"||st==="vermelho";}).length;
+  document.getElementById("cidade-header").innerHTML=
+    "<div style='font-size:16px;font-weight:700'>&#128205; "+cidade+"</div>"+
+    "<div style='font-size:12px;opacity:.7;margin-top:4px'>"+lista.length+" cliente"+(lista.length>1?"s":"")+
+    (inativos>0?" · <span style='color:#fca5a5;font-weight:600'>"+inativos+" precisam de visita</span>":"")+"</div>";
+  document.getElementById("lista-cidade-clientes").innerHTML=lista.map(function(c){
+    var st=getStatus(c);
+    var dias=c.ultimoPedido?Math.floor((Date.now()-new Date(c.ultimoPedido).getTime())/86400000):null;
+    var urgencia="";
+    if(st==="vermelho")urgencia="<span style='background:#fef2f2;color:#C8102E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px'>Visita urgente</span>";
+    else if(st==="amarelo")urgencia="<span style='background:#fff8e1;color:#856404;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px'>Acompanhar</span>";
+    else urgencia="<span style='background:#ecfdf5;color:#065f46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px'>Ativo</span>";
+    return"<div class='cliente-card "+st+"' onclick='verCliente("+c.id+")'>"+
+      "<div style='display:flex;justify-content:space-between;align-items:flex-start'>"+
+      "<div><div style='font-size:14px;font-weight:600'>"+c.nome+"</div>"+
+      "<div style='margin-top:5px'>"+urgencia+"</div></div>"+
+      "<span class='status-dot dot-"+st+"'></span></div>"+
+      "<div style='margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;font-size:12px'>"+
+      "<span style='color:#6b7280'>"+(dias!==null?dias+" dias sem pedido":"Nunca comprou")+"</span>"+
+      (c.ultimoPedidoValor?"<span style='font-weight:600'>R$ "+parseFloat(c.ultimoPedidoValor).toFixed(2).replace(".",",")+"</span>":"")+"</div></div>";
+  }).join("");
+}
+
+function voltarCidades(){
+  document.getElementById("s-cidade").style.display="none";
+  renderListaCidades();
+}
 
 function popularSelectClientes(){
   var sel=document.getElementById("cli");
@@ -671,7 +751,7 @@ async function salvarPedido(){
   var obs=document.getElementById("obs").value;
   var btn=document.getElementById("btn-salvar-pedido");
   btn.textContent="Salvando...";btn.disabled=true;
-  var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:new Date().toISOString(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
+  var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:dataHojeBR(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
   btn.textContent="Salvar pedido no sistema";btn.disabled=false;
   if(id){
     await carregarPedidos();await carregarClientes();popularSelectClientes();renderClientes("todos");atualizarDashboard();
