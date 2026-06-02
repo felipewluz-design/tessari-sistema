@@ -158,11 +158,12 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   </div>
   <div class="login-box">
     <h2 style="font-size:18px;font-weight:700;color:#0A2463;margin-bottom:4px">Suas marcas</h2>
-    <p style="font-size:12px;color:#6b7280;margin-bottom:16px">Adicione as marcas que voce representa e a comissao de cada uma</p>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Adicione as marcas que voce representa</p>
     <div id="onb-lista-marcas"></div>
-    <button onclick="onbAddMarca()" style="width:100%;padding:10px;border:1.5px dashed #e5e7eb;border-radius:8px;background:#fff;font-size:13px;color:#6b7280;cursor:pointer;font-family:system-ui;margin-bottom:16px">+ Adicionar marca</button>
+    <button onclick="onbAddMarca()" style="width:100%;padding:14px;border:1.5px dashed #e5e7eb;border-radius:10px;background:#fff;font-size:15px;color:#6b7280;cursor:pointer;font-family:system-ui;margin-bottom:16px">+ Adicionar marca</button>
     <div class="login-err" id="onb-err"></div>
     <button class="btn btn-blue" onclick="salvarOnboarding()">Comecar a usar</button>
+    <button class="btn btn-dash" onclick="pularOnboarding()">Adicionar depois</button>
   </div>
 </div>
 
@@ -197,6 +198,13 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <span style="color:#fff;font-size:16px;font-weight:700" id="stat-comissao-liquida">R$0</span>
   </div>
   <div id="alertas-home"></div>
+  <div id="alerta-sem-marcas" style="display:none;background:#fff8e1;border:1px solid #F59E0B;border-radius:10px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:14px;font-weight:600;color:#856404">Nenhuma marca cadastrada</div>
+      <div style="font-size:12px;color:#856404;margin-top:2px">Adicione suas marcas para comecar</div>
+    </div>
+    <button onclick="mostrarOnboarding()" style="background:#F59E0B;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui;white-space:nowrap;margin-left:10px">+ Adicionar</button>
+  </div>
   <div class="qagrid">
     <button class="qacard" onclick="goTo('disney')">
       <div class="qaicon" style="background:#eef2ff;color:#003DA5">+</div>
@@ -283,8 +291,8 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
 <!-- PEDIDOS -->
 <div id="s-disney" class="scr">
   <h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Novo Pedido</h2>
-  <p style="font-size:12px;color:#6b7280;margin-bottom:14px">Disney ou Ferracini</p>
-  <div style="display:flex;gap:8px;margin-bottom:14px">
+  <p style="font-size:12px;color:#6b7280;margin-bottom:14px" id="pedido-subtitle">Selecione a marca</p>
+  <div id="marcas-btns" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
     <button id="btn-marca-disney" onclick="selecionarMarca('disney')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #003DA5;background:#003DA5;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif">Disney / Dyan</button>
     <button id="btn-marca-ferracini" onclick="selecionarMarca('ferracini')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #e5e7eb;background:#fff;color:#6b7280;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif">Ferracini</button>
   </div>
@@ -294,13 +302,8 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <button class="btn btn-disney btn-sm" style="margin-top:0" onclick="document.getElementById('pdf-upload').click()">Selecionar PDF ou foto</button>
     <div id="pdf-status" style="display:none;margin-top:8px;font-size:12px;color:#003DA5;padding:8px;background:#fff;border-radius:6px;border:1px solid #c7d7f7"><span id="pdf-status-txt">Lendo...</span></div>
   </div>
-  <div class="flbl">Tipo de comissao</div>
-  <select class="inp" id="tipo-comissao" style="margin-bottom:10px">
-    <option value="10">Disney Varejo — 10%</option>
-    <option value="5">Disney Rede — 5%</option>
-    <option value="6">Ferracini Normal — 6%</option>
-    <option value="4">Ferracini Especial — 4%</option>
-  </select>
+  <div class="flbl">Comissao (%)</div>
+  <input type="number" class="inp" id="tipo-comissao" placeholder="Ex: 6" step="0.1" min="0" max="100" style="margin-bottom:10px" />
   <div class="flbl">Lojista</div>
   <select class="inp" id="cli" onchange="selecionarCliente()"><option value="">Selecionar cliente...</option></select>
   <div id="cli-info" style="display:none;background:#f0f4ff;border-radius:8px;padding:10px;margin-top:6px;font-size:12px;color:#003DA5"></div>
@@ -416,7 +419,7 @@ function dataHojeBR(){var d=new Date(),off=d.getTimezoneOffset(),l=new Date(d.ge
 function dataBR(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0];}
 
 // ===== ONBOARDING =====
-var onbMarcas=[];
+var onbMarcas=[], marcasRep=[];
 
 async function verificarOnboarding(user){
   var r=await db.from("perfil_rep").select("onboarding_completo").eq("user_id",user.id).single();
@@ -435,35 +438,53 @@ function mostrarOnboarding(){
   onbRender();
 }
 
+function pularOnboarding(){
+  document.getElementById("onboarding-wrap").style.display="none";
+  db.auth.getUser().then(function(r){
+    if(r.data&&r.data.user){
+      db.from("perfil_rep").upsert({user_id:r.data.user.id,onboarding_completo:true},{onConflict:"user_id"});
+      entrarNoApp(r.data.user);
+    }
+  });
+}
+
 function onbAddMarca(){
-  onbMarcas.push({nome:"",comissao_normal:6,comissao_especial:4});
+  onbMarcas.push({nome:"",comissoes:[]});
+  onbRender();
+}
+
+function onbAddComissao(i){
+  onbMarcas[i].comissoes.push({label:"",valor:6});
+  onbRender();
+}
+
+function onbRemComissao(i,j){
+  onbMarcas[i].comissoes.splice(j,1);
   onbRender();
 }
 
 function onbRender(){
   var el=document.getElementById("onb-lista-marcas");
   el.innerHTML=onbMarcas.map(function(m,i){
-    return"<div class='onb-marca'>"+
-      "<div style='flex:1'>"+
-      "<input type='text' placeholder='Nome da marca (ex: Via Uno)' value='"+m.nome+"' oninput='onbMarcas["+i+"].nome=this.value' style='width:100%;font-size:16px;border:none;background:none;outline:none;font-family:system-ui' />"+
-      "<div style='display:flex;gap:8px;margin-top:8px'>"+
-      "<div style='flex:1'>"+
-      "<div style='font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;margin-bottom:2px'>Comissao normal %</div>"+
-      "<input type='number' value='"+m.comissao_normal+"' oninput='onbMarcas["+i+"].comissao_normal=parseFloat(this.value)||0' style='width:100%;font-size:16px;border:1.5px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-family:system-ui;outline:none' />"+
+    var comHtml=m.comissoes.map(function(c,j){
+      return"<div style='display:flex;gap:8px;align-items:center;margin-top:8px'>"+
+        "<input type='text' placeholder='Ex: Normal' value='"+c.label+"' oninput='onbMarcas["+i+"].comissoes["+j+"].label=this.value' style='flex:2;font-size:15px;border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-family:system-ui;outline:none' />"+
+        "<input type='number' placeholder='%' value='"+c.valor+"' oninput='onbMarcas["+i+"].comissoes["+j+"].valor=parseFloat(this.value)||0' style='flex:1;font-size:15px;border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 8px;font-family:system-ui;outline:none' />"+
+        "<button onclick='onbRemComissao("+i+","+j+")' style='background:none;border:none;color:#C8102E;font-size:22px;cursor:pointer;padding:0;line-height:1;flex-shrink:0'>×</button>"+
+        "</div>";
+    }).join("");
+    return"<div style='background:#f4f5f7;border-radius:12px;padding:14px;margin-bottom:10px'>"+
+      "<div style='display:flex;align-items:center;gap:8px'>"+
+      "<input type='text' placeholder='Nome da marca (ex: Via Uno)' value='"+m.nome+"' oninput='onbMarcas["+i+"].nome=this.value' style='flex:1;font-size:16px;border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#fff;font-family:system-ui;outline:none' />"+
+      "<button onclick='onbRemMarca("+i+")' style='background:none;border:none;color:#C8102E;font-size:22px;cursor:pointer;padding:0;line-height:1;flex-shrink:0'>×</button>"+
       "</div>"+
-      "<div style='flex:1'>"+
-      "<div style='font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;margin-bottom:2px'>Comissao especial %</div>"+
-      "<input type='number' value='"+m.comissao_especial+"' oninput='onbMarcas["+i+"].comissao_especial=parseFloat(this.value)||0' style='width:100%;font-size:16px;border:1.5px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-family:system-ui;outline:none' />"+
-      "</div></div></div>"+
-      "<button onclick='onbRemMarca("+i+")' style='background:none;border:none;color:#C8102E;font-size:22px;cursor:pointer;padding:0 0 0 10px;line-height:1'>×</button>"+
+      comHtml+
+      "<button onclick='onbAddComissao("+i+")' style='background:none;border:none;color:#0A2463;font-size:13px;font-weight:600;cursor:pointer;padding:8px 0 0;font-family:system-ui'>+ Adicionar % comissao</button>"+
       "</div>";
   }).join("");
 }
 
-function onbRemMarca(i){
-  onbMarcas.splice(i,1);
-  onbRender();
-}
+function onbRemMarca(i){onbMarcas.splice(i,1);onbRender();}
 
 async function salvarOnboarding(){
   var err=document.getElementById("onb-err");
@@ -472,10 +493,10 @@ async function salvarOnboarding(){
   var btn=document.querySelector("#onboarding-wrap .btn-blue");
   btn.textContent="Salvando...";btn.disabled=true;
   var user=(await db.auth.getUser()).data.user;
-  // Salvar marcas
-  var marcasDB=validas.map(function(m){return{user_id:user.id,nome:m.nome.trim(),comissao_normal:m.comissao_normal,comissao_especial:m.comissao_especial};});
+  var marcasDB=validas.map(function(m){
+    return{user_id:user.id,nome:m.nome.trim(),comissao_normal:m.comissoes[0]?m.comissoes[0].valor:6,comissao_especial:m.comissoes[1]?m.comissoes[1].valor:4};
+  });
   await db.from("marcas_rep").insert(marcasDB);
-  // Marcar onboarding completo
   await db.from("perfil_rep").upsert({user_id:user.id,onboarding_completo:true},{onConflict:"user_id"});
   btn.textContent="Comecar a usar";btn.disabled=false;
   document.getElementById("onboarding-wrap").style.display="none";
@@ -512,20 +533,73 @@ function mostrarTelaLogin(){
   document.getElementById("login-wrap").style.display="flex";
 }
 
-function entrarNoApp(user){
+async function entrarNoApp(user){
   document.getElementById("login-wrap").style.display="none";
   document.querySelector(".app").style.display="block";
   document.getElementById("logout-btn").style.display="block";
-  // Pegar nome do usuario
   var nome=user.user_metadata&&user.user_metadata.nome?user.user_metadata.nome.split(" ")[0]:"Rep";
   document.getElementById("hdate").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
   document.getElementById("entrega").value=new Date(Date.now()+86400000*60).toISOString().split("T")[0];
-  // Atualizar saudacao
   var h=new Date().getHours();
   var sauda=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
   var el=document.querySelector("#s-home h2");
   if(el)el.textContent=sauda+", "+nome+"!";
+  // Carregar marcas do rep
+  var rm=await db.from("marcas_rep").select("*").eq("user_id",user.id);
+  marcasRep=rm.data||[];
+  renderMarcasBtns();
   carregarTudo();
+}
+
+function renderMarcasBtns(){
+  var container=document.getElementById("marcas-btns");
+  if(!container)return;
+  // Se nao tem marcas proprias, usa Disney/Ferracini padrao
+  if(!marcasRep.length){
+    container.innerHTML=
+      "<button id='btn-marca-disney' data-m='disney' onclick='selecionarMarca(this.dataset.m)' style='flex:1;padding:12px;border-radius:8px;border:2px solid #003DA5;background:#003DA5;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:system-ui'>Disney / Dyan</button>"+
+      "<button id='btn-marca-ferracini' data-m='ferracini' onclick='selecionarMarca(this.dataset.m)' style='flex:1;padding:12px;border-radius:8px;border:2px solid #e5e7eb;background:#fff;color:#6b7280;font-size:14px;font-weight:600;cursor:pointer;font-family:system-ui'>Ferracini</button>";
+    document.getElementById("pedido-subtitle").textContent="Disney ou Ferracini";
+    return;
+  }
+  // Marcas proprias do rep
+  document.getElementById("pedido-subtitle").textContent="Selecione a marca";
+  container.innerHTML=marcasRep.map(function(m,i){
+    var ativo=i===0;
+    return"<button data-marca-id='"+m.id+"' data-marca-nome='"+m.nome+"' data-comissao-normal='"+m.comissao_normal+"' data-comissao-especial='"+m.comissao_especial+"' "+
+      "onclick='selecionarMarcaRep(this)' "+
+      "style='flex:1;min-width:calc(50% - 4px);padding:12px;border-radius:8px;border:2px solid "+(ativo?"#0A2463":"#e5e7eb")+";background:"+(ativo?"#0A2463":"#fff")+";color:"+(ativo?"#fff":"#6b7280")+";font-size:14px;font-weight:600;cursor:pointer;font-family:system-ui'>"+
+      m.nome+"</button>";
+  }).join("");
+  // Aviso na home se sem marcas
+  var alertaEl=document.getElementById("alerta-sem-marcas");
+  if(alertaEl)alertaEl.style.display="none";
+}
+
+function mostrarAlertaSemMarcas(){
+  var alertaEl=document.getElementById("alerta-sem-marcas");
+  if(alertaEl)alertaEl.style.display="flex";
+  // Seleciona primeira marca automaticamente
+  if(marcasRep.length){
+    var firstBtn=container.querySelector("button");
+    if(firstBtn)selecionarMarcaRep(firstBtn);
+  }
+}
+
+function selecionarMarcaRep(btn){
+  var container=document.getElementById("marcas-btns");
+  container.querySelectorAll("button").forEach(function(b){
+    b.style.background="#fff";b.style.color="#6b7280";b.style.borderColor="#e5e7eb";
+  });
+  btn.style.background="#0A2463";btn.style.color="#fff";btn.style.borderColor="#0A2463";
+  marcaAtual=btn.dataset.marcaNome;
+  // Preenche comissao com o normal da marca
+  var comissaoEl=document.getElementById("tipo-comissao");
+  if(comissaoEl)comissaoEl.value=btn.dataset.comissaoNormal||6;
+  // Esconde secao Disney, mostra Ferracini generico
+  document.getElementById("plist-disney").style.display="none";
+  document.getElementById("plist-ferracini").style.display="block";
+  document.getElementById("fer-faturamento").placeholder="Ex: 1a quinzena julho/2026";
 }
 
 async function fazerLogin(){
@@ -1073,7 +1147,7 @@ function atuResumo(){
 
 async function salvarPedido(){
   var cliId=parseInt(document.getElementById("cli").value);if(!cliId){alert("Selecione o cliente.");return;}
-  var tp=0,tv=0,perc=parseFloat(document.getElementById("tipo-comissao").value)||10;
+  var tp=0,tv=0,perc=parseFloat(document.getElementById("tipo-comissao").value)||6;
   if(marcaAtual==="disney"){
     itens.forEach(function(item){var pr=getPreco(item.l,item);item.ns.forEach(function(n){var q=item.qtds[n]||0;tp+=q;tv+=q*pr;});});
     if(tp===0){alert("Adicione pelo menos um produto.");return;}
