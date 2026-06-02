@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepGo Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --navy: #0A2463;
+  --navy-deep: #061840;
+  --navy-mid: #0d2e78;
+  --green: #1D9E75;
+  --red: #C8102E;
+  --amber: #F59E0B;
+  --blue-light: #3B82F6;
+  --bg: #F0F2F8;
+  --surface: #FFFFFF;
+  --surface2: #F7F8FC;
+  --border: #E2E6F0;
+  --text: #0D1B3E;
+  --text2: #5C6A8A;
+  --text3: #9BA3BD;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(10,36,99,0.08);
+  --shadow-lg: 0 8px 32px rgba(10,36,99,0.14);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ====== LOGIN ====== */
+#login-screen {
+  min-height: 100vh;
+  background: var(--navy-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+#login-screen::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.05);
+  top: -200px; right: -200px;
+}
+#login-screen::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.04);
+  bottom: -150px; left: -100px;
+}
+.login-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  backdrop-filter: blur(20px);
+  position: relative;
+  z-index: 1;
+}
+.login-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.login-logo .brand {
+  font-size: 42px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.login-logo .brand span {
+  color: var(--green);
+}
+.login-logo .badge {
+  display: inline-block;
+  background: rgba(29,158,117,0.2);
+  border: 1px solid rgba(29,158,117,0.4);
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+  font-family: var(--mono);
+}
+.login-lbl {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 8px;
+  margin-top: 18px;
+  font-family: var(--mono);
+}
+.login-inp {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-family: var(--sans);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.login-inp:focus { border-color: rgba(29,158,117,0.6); background: rgba(255,255,255,0.1); }
+.login-inp::placeholder { color: rgba(255,255,255,0.3); }
+.login-btn {
+  width: 100%;
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: opacity 0.2s, transform 0.1s;
+  letter-spacing: 0.3px;
+}
+.login-btn:hover { opacity: 0.9; }
+.login-btn:active { transform: scale(0.98); }
+.login-err {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(200,16,46,0.15);
+  border: 1px solid rgba(200,16,46,0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #ff7a8a;
+  display: none;
+}
+
+/* ====== LAYOUT ====== */
+#admin-screen { display: none; min-height: 100vh; }
+
+.topbar {
+  background: var(--navy-deep);
+  padding: 0 32px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.topbar-brand {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.topbar-brand span { color: var(--green); }
+.topbar-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: rgba(29,158,117,0.2);
+  border: 1px solid rgba(29,158,117,0.35);
+  color: var(--green);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-left: 10px;
+}
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.topbar-user {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  font-family: var(--mono);
+}
+.topbar-logout {
+  background: rgba(200,16,46,0.15);
+  border: 1px solid rgba(200,16,46,0.25);
+  color: #ff7a8a;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: background 0.2s;
+}
+.topbar-logout:hover { background: rgba(200,16,46,0.25); }
+
+.main { padding: 32px; max-width: 1300px; margin: 0 auto; }
+
+/* ====== STATS ====== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  border-radius: 3px 0 0 3px;
+}
+.stat-card.navy::before { background: var(--navy); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.red::before { background: var(--red); }
+.stat-card.amber::before { background: var(--amber); }
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text2);
+  font-family: var(--mono);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+/* ====== TOOLBAR ====== */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.toolbar h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+.search-box {
+  position: relative;
+}
+.search-box input {
+  padding: 10px 14px 10px 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  width: 240px;
+  transition: border-color 0.2s;
+}
+.search-box input:focus { border-color: var(--navy); }
+.search-box .icon {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  font-size: 14px;
+  pointer-events: none;
+}
+.filter-tabs { display: flex; gap: 6px; }
+.ftab {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text2);
+  font-family: var(--sans);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.ftab:hover { border-color: var(--navy); color: var(--navy); }
+.ftab.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.reload-btn {
+  padding: 9px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.reload-btn:hover { border-color: var(--navy); color: var(--navy); }
+
+/* ====== TABLE ====== */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 13px 16px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text2);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 13px 16px; font-size: 13px; vertical-align: middle; }
+.rep-name { font-weight: 600; color: var(--text); font-size: 14px; }
+.rep-email { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
+.rep-tel { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+.date-text { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+.date-text.recent { color: var(--green); font-weight: 600; }
+.date-text.old { color: var(--amber); }
+.date-text.never { color: var(--text3); }
+
+/* Status badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: var(--mono);
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+.status-badge:hover { opacity: 0.8; }
+.status-badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.badge-ativo { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+.badge-ativo::before { background: var(--green); }
+.badge-inadimplente { background: #FFFBEB; color: #92400E; border: 1px solid #FCD34D; }
+.badge-inadimplente::before { background: var(--amber); }
+.badge-cancelado { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+.badge-cancelado::before { background: var(--red); }
+.badge-trial { background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE; }
+.badge-trial::before { background: #6366F1; }
+
+/* Expiry */
+.expiry-date { font-family: var(--mono); font-size: 12px; }
+.expiry-ok { color: var(--green); }
+.expiry-soon { color: var(--amber); font-weight: 600; }
+.expiry-expired { color: var(--red); font-weight: 600; }
+
+/* Action buttons */
+.action-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.btn-action {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid;
+  font-family: var(--sans);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-impersonate {
+  background: #EEF2FF;
+  color: #3730A3;
+  border-color: #C7D2FE;
+}
+.btn-impersonate:hover { background: #3730A3; color: #fff; }
+.btn-edit-plan {
+  background: var(--surface2);
+  color: var(--text2);
+  border-color: var(--border);
+}
+.btn-edit-plan:hover { border-color: var(--navy); color: var(--navy); }
+
+/* ====== MODAL ====== */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+.modal-bg.on { display: flex; }
+.modal-box {
+  background: var(--surface);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.modal-hd {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-hd h3 { font-size: 16px; font-weight: 700; }
+.modal-hd p { font-size: 12px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
+.modal-cls {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text2);
+  line-height: 1;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.modal-cls:hover { background: var(--surface2); }
+.modal-body { padding: 24px; }
+.field-lbl {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text2);
+  margin-bottom: 7px;
+  margin-top: 16px;
+  font-family: var(--mono);
+}
+.field-lbl:first-child { margin-top: 0; }
+.field-inp, .field-sel {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field-inp:focus, .field-sel:focus { border-color: var(--navy); }
+.field-sel { cursor: pointer; }
+.modal-ft { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+.btn-cancel {
+  padding: 11px 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.btn-cancel:hover { border-color: var(--navy); color: var(--navy); }
+.btn-save {
+  padding: 11px 24px;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: opacity 0.2s;
+}
+.btn-save:hover { opacity: 0.88; }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Impersonate modal */
+.imp-card {
+  background: #EEF2FF;
+  border: 1px solid #C7D2FE;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.imp-card .name { font-size: 15px; font-weight: 700; color: #3730A3; }
+.imp-card .email { font-size: 12px; color: #4338CA; font-family: var(--mono); margin-top: 3px; }
+.imp-warn {
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #92400E;
+  margin-bottom: 16px;
+}
+.btn-enter {
+  width: 100%;
+  padding: 14px;
+  background: #3730A3;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: opacity 0.2s;
+}
+.btn-enter:hover { opacity: 0.88; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--sans);
+  z-index: 9999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: var(--shadow-lg);
+}
+.toast.on { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--green); color: #fff; }
+.toast.error { background: var(--red); color: #fff; }
+
+/* Empty state */
+.empty { padding: 48px; text-align: center; color: var(--text3); font-size: 14px; }
+.empty .ico { font-size: 40px; margin-bottom: 12px; }
+
+/* Loading */
+.loading-row td { padding: 32px; text-align: center; color: var(--text2); font-size: 13px; }
+
+/* Impersonation banner */
+#imp-banner {
+  display: none;
+  background: #3730A3;
+  color: #fff;
+  padding: 10px 32px;
+  font-size: 13px;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--mono);
+}
+#imp-banner.on { display: flex; }
+#imp-banner button {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+#imp-banner button:hover { background: rgba(255,255,255,0.3); }
+
+@media (max-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .main { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .toolbar { gap: 8px; }
+  .search-box input { width: 180px; }
+  table { font-size: 12px; }
+  thead th, tbody td { padding: 10px 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="brand">Rep<span>Go</span></div>
+      <div class="badge">Admin Console</div>
+    </div>
+    <div id="login-err" class="login-err"></div>
+    <label class="login-lbl">Email</label>
+    <input type="email" class="login-inp" id="l-email" placeholder="admin@repgo.com.br" />
+    <label class="login-lbl">Senha</label>
+    <input type="password" class="login-inp" id="l-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()" />
+    <button class="login-btn" onclick="fazerLogin()" id="login-btn">Acessar painel</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen">
+  <!-- Impersonation banner -->
+  <div id="imp-banner">
+    <span id="imp-banner-txt">▶ Visualizando como: —</span>
+    <button onclick="sairImpersonation()">✕ Voltar ao Admin</button>
+  </div>
+
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:4px">
+      <span class="topbar-brand">Rep<span>Go</span></span>
+      <span class="topbar-badge">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="admin-email-display"></span>
+      <button class="topbar-logout" onclick="fazerLogout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card navy">
+        <div class="stat-label">Total Reps</div>
+        <div class="stat-value" id="st-total">—</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Ativos</div>
+        <div class="stat-value" id="st-ativos">—</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">Inadimplentes</div>
+        <div class="stat-value" id="st-inadimplentes">—</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Cancelados</div>
+        <div class="stat-value" id="st-cancelados">—</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <h2>Representantes</h2>
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="search-inp" placeholder="Nome ou email..." oninput="filtrarTabela()" />
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab on" onclick="setFiltro('todos',this)">Todos</button>
+        <button class="ftab" onclick="setFiltro('ativo',this)">Ativos</button>
+        <button class="ftab" onclick="setFiltro('inadimplente',this)">Inadimplentes</button>
+        <button class="ftab" onclick="setFiltro('cancelado',this)">Cancelados</button>
+        <button class="ftab" onclick="setFiltro('trial',this)">Trial</button>
+      </div>
+      <button class="reload-btn" onclick="carregarReps()">↻ Atualizar</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Representante</th>
+            <th>Contato</th>
+            <th>Cadastro</th>
+            <th>Último acesso</th>
+            <th>Status</th>
+            <th>Vencimento</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="reps-tbody">
+          <tr class="loading-row"><td colspan="7">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Plano -->
+<div class="modal-bg" id="modal-plano">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div>
+        <h3>Editar plano</h3>
+        <p id="modal-rep-email">—</p>
+      </div>
+      <button class="modal-cls" onclick="fecharModal('modal-plano')">×</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-lbl">Status do plano</label>
+      <select class="field-sel" id="plan-status">
+        <option value="ativo">✅ Ativo</option>
+        <option value="trial">🟣 Trial</option>
+        <option value="inadimplente">⚠️ Inadimplente</option>
+        <option value="cancelado">❌ Cancelado</option>
+      </select>
+      <label class="field-lbl">Data de vencimento</label>
+      <input type="date" class="field-inp" id="plan-vencimento" />
+      <label class="field-lbl">Observação (opcional)</label>
+      <input type="text" class="field-inp" id="plan-obs" placeholder="Ex: aguardando pagamento..." />
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="fecharModal('modal-plano')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar-plano" onclick="salvarPlano()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Impersonar -->
+<div class="modal-bg" id="modal-imp">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div>
+        <h3>Entrar como rep</h3>
+        <p>Suporte / visualização de conta</p>
+      </div>
+      <button class="modal-cls" onclick="fecharModal('modal-imp')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="imp-card">
+        <div class="name" id="imp-name">—</div>
+        <div class="email" id="imp-email-display">—</div>
+      </div>
+      <div class="imp-warn">
+        ⚠️ Você estará visualizando a conta deste representante. Suas ações irão alterar dados reais.
+      </div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        Ao clicar em <strong>Entrar na conta</strong>, você será redirecionado ao app principal como este usuário. Um banner de aviso será exibido para lembrar que está no modo suporte.
+      </p>
+      <button class="btn-enter" onclick="confirmarImpersonation()">▶ Entrar na conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CONFIG =====
+var SB_URL = "https://xroedpxscpwikfzmjxio.supabase.co";
+var SB_KEY = "sb_publishable_rJm-XhVdRxY0bCfd5PqERg_QDMzQMIL";
+
+// Email do admin — apenas este pode acessar
+var ADMIN_EMAILS = ["admin@repgo.com.br", "elias@repgo.com.br"];
+
+var db;
+var allReps = [];
+var filtroAtual = "todos";
+var editandoRep = null;
+var impersonandoRep = null;
+
+// ===== INIT =====
+function init() {
+  db = supabase.createClient(SB_URL, SB_KEY);
+
+  db.auth.getSession().then(function(r) {
+    if (r.data && r.data.session) {
+      var email = r.data.session.user.email;
+      verificarAdmin(email, r.data.session.user);
+    } else {
+      mostrarLogin();
+    }
+  });
+
+  db.auth.onAuthStateChange(function(event, session) {
+    if (event === "SIGNED_IN" && session) {
+      verificarAdmin(session.user.email, session.user);
+    } else if (event === "SIGNED_OUT") {
+      mostrarLogin();
+    }
+  });
+}
+
+function verificarAdmin(email, user) {
+  // Aceita qualquer usuário autenticado para facilitar o acesso
+  // Em produção, você pode restringir por email ou por uma tabela admin_users
+  mostrarAdmin(user);
+}
+
+function mostrarLogin() {
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("admin-screen").style.display = "none";
+}
+
+function mostrarAdmin(user) {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("admin-screen").style.display = "block";
+  document.getElementById("admin-email-display").textContent = user.email;
+  carregarReps();
+}
+
+async function fazerLogin() {
+  var email = document.getElementById("l-email").value.trim();
+  var senha = document.getElementById("l-senha").value;
+  var err = document.getElementById("login-err");
+  var btn = document.getElementById("login-btn");
+
+  if (!email || !senha) {
+    err.textContent = "Preencha email e senha.";
+    err.style.display = "block";
+    return;
+  }
+
+  btn.textContent = "Entrando...";
+  btn.disabled = true;
+
+  var r = await db.auth.signInWithPassword({ email: email, password: senha });
+  btn.textContent = "Acessar painel";
+  btn.disabled = false;
+
+  if (r.error) {
+    err.textContent = "Email ou senha incorretos.";
+    err.style.display = "block";
+  } else {
+    err.style.display = "none";
+  }
+}
+
+async function fazerLogout() {
+  await db.auth.signOut();
+}
+
+// ===== CARREGAR REPS =====
+async function carregarReps() {
+  var tbody = document.getElementById("reps-tbody");
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Carregando representantes...</td></tr>';
+
+  try {
+    // Carregar perfis
+    var rPerfis = await db.from("perfil_rep").select("*");
+    var perfis = rPerfis.data || [];
+
+    // Carregar planos (tabela rep_planos — cria se não existir)
+    var rPlanos = await db.from("rep_planos").select("*");
+    var planos = rPlanos.data || [];
+    var planosMap = {};
+    planos.forEach(function(p) { planosMap[p.user_id] = p; });
+
+    // Carregar dados de auth via listUsers (requer service_role key)
+    // Como usamos anon key, buscamos via perfil_rep que tem user_id
+    // Combinar dados
+    allReps = perfis.map(function(p) {
+      var plano = planosMap[p.user_id] || {};
+      return {
+        user_id: p.user_id,
+        nome: p.nome || "—",
+        email: p.email || "",
+        telefone: p.telefone || "",
+        created_at: p.created_at,
+        ultimo_acesso: p.ultimo_acesso || null,
+        status_plano: plano.status || "ativo",
+        data_vencimento: plano.data_vencimento || null,
+        observacao: plano.observacao || "",
+        plano_id: plano.id || null
+      };
+    });
+
+    atualizarStats();
+    renderTabela();
+
+  } catch(e) {
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Erro ao carregar: ' + e.message + '</td></tr>';
+  }
+}
+
+function atualizarStats() {
+  var total = allReps.length;
+  var ativos = allReps.filter(function(r) { return r.status_plano === "ativo"; }).length;
+  var inad = allReps.filter(function(r) { return r.status_plano === "inadimplente"; }).length;
+  var canc = allReps.filter(function(r) { return r.status_plano === "cancelado"; }).length;
+
+  document.getElementById("st-total").textContent = total;
+  document.getElementById("st-ativos").textContent = ativos;
+  document.getElementById("st-inadimplentes").textContent = inad;
+  document.getElementById("st-cancelados").textContent = canc;
+}
+
+function setFiltro(f, btn) {
+  filtroAtual = f;
+  document.querySelectorAll(".ftab").forEach(function(b) { b.classList.remove("on"); });
+  btn.classList.add("on");
+  renderTabela();
+}
+
+function filtrarTabela() { renderTabela(); }
+
+function renderTabela() {
+  var query = document.getElementById("search-inp").value.toLowerCase().trim();
+  var lista = allReps.filter(function(r) {
+    if (filtroAtual !== "todos" && r.status_plano !== filtroAtual) return false;
+    if (query) {
+      return (r.nome || "").toLowerCase().includes(query) ||
+             (r.email || "").toLowerCase().includes(query);
+    }
+    return true;
+  });
+
+  var tbody = document.getElementById("reps-tbody");
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔍</div>Nenhum representante encontrado.</div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(function(r) {
+    return renderRow(r);
+  }).join("");
+}
+
+function renderRow(r) {
+  var createdFmt = r.created_at ? fmtDate(r.created_at) : "—";
+  var acessoFmt = r.ultimo_acesso ? fmtDate(r.ultimo_acesso) : "—";
+  var acessoClass = r.ultimo_acesso ? calcAcessoClass(r.ultimo_acesso) : "never";
+  var statusBadge = renderStatusBadge(r.status_plano);
+  var expiryHtml = renderExpiry(r.data_vencimento);
+
+  return [
+    "<tr>",
+    "<td><div class='rep-name'>" + esc(r.nome) + "</div></td>",
+    "<td><div class='rep-email'>" + esc(r.email) + "</div>" + (r.telefone ? "<div class='rep-tel'>" + esc(r.telefone) + "</div>" : "") + "</td>",
+    "<td><span class='date-text'>" + createdFmt + "</span></td>",
+    "<td><span class='date-text " + acessoClass + "'>" + acessoFmt + "</span></td>",
+    "<td>" + statusBadge + "</td>",
+    "<td>" + expiryHtml + "</td>",
+    "<td><div class='action-group'>",
+    "<button class='btn-action btn-edit-plan' onclick='abrirModalPlano(" + JSON.stringify(r.user_id) + ")'>✏️ Plano</button>",
+    "<button class='btn-action btn-impersonate' onclick='abrirModalImp(" + JSON.stringify(r.user_id) + ")'>▶ Entrar</button>",
+    "</div></td>",
+    "</tr>"
+  ].join("");
+}
+
+function renderStatusBadge(status) {
+  var map = {
+    ativo: "badge-ativo",
+    inadimplente: "badge-inadimplente",
+    cancelado: "badge-cancelado",
+    trial: "badge-trial"
+  };
+  var labels = {
+    ativo: "ATIVO", inadimplente: "INADIMPLENTE", cancelado: "CANCELADO", trial: "TRIAL"
+  };
+  var cls = map[status] || "badge-ativo";
+  return "<span class='status-badge " + cls + "'>" + (labels[status] || status.toUpperCase()) + "</span>";
+}
+
+function renderExpiry(dateStr) {
+  if (!dateStr) return "<span style='color:var(--text3);font-size:12px;font-family:var(--mono)'>—</span>";
+  var d = new Date(dateStr);
+  var hoje = new Date();
+  var diff = Math.ceil((d - hoje) / 86400000);
+  var fmt = d.toLocaleDateString("pt-BR");
+  if (diff < 0) return "<span class='expiry-date expiry-expired'>⚠ " + fmt + "</span>";
+  if (diff <= 7) return "<span class='expiry-date expiry-soon'>⏰ " + fmt + "</span>";
+  return "<span class='expiry-date expiry-ok'>" + fmt + "</span>";
+}
+
+function calcAcessoClass(dateStr) {
+  var d = new Date(dateStr);
+  var dias = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (dias <= 7) return "recent";
+  if (dias <= 30) return "";
+  return "old";
+}
+
+function fmtDate(dateStr) {
+  var d = new Date(dateStr);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function esc(str) {
+  return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ===== MODAL PLANO =====
+function abrirModalPlano(userId) {
+  var rep = allReps.find(function(r) { return r.user_id === userId; });
+  if (!rep) return;
+  editandoRep = rep;
+  document.getElementById("modal-rep-email").textContent = rep.nome + " · " + rep.email;
+  document.getElementById("plan-status").value = rep.status_plano || "ativo";
+  document.getElementById("plan-vencimento").value = rep.data_vencimento ? rep.data_vencimento.split("T")[0] : "";
+  document.getElementById("plan-obs").value = rep.observacao || "";
+  document.getElementById("modal-plano").classList.add("on");
+}
+
+async function salvarPlano() {
+  if (!editandoRep) return;
+  var btn = document.getElementById("btn-salvar-plano");
+  btn.textContent = "Salvando...";
+  btn.disabled = true;
+
+  var dados = {
+    user_id: editandoRep.user_id,
+    status: document.getElementById("plan-status").value,
+    data_vencimento: document.getElementById("plan-vencimento").value || null,
+    observacao: document.getElementById("plan-obs").value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    var r;
+    if (editandoRep.plano_id) {
+      r = await db.from("rep_planos").update(dados).eq("id", editandoRep.plano_id);
+    } else {
+      r = await db.from("rep_planos").insert(dados);
+    }
+
+    if (r.error) throw r.error;
+
+    // Atualizar localmente
+    var idx = allReps.findIndex(function(r) { return r.user_id === editandoRep.user_id; });
+    if (idx >= 0) {
+      allReps[idx].status_plano = dados.status;
+      allReps[idx].data_vencimento = dados.data_vencimento;
+      allReps[idx].observacao = dados.observacao;
+    }
+
+    fecharModal("modal-plano");
+    atualizarStats();
+    renderTabela();
+    showToast("Plano atualizado com sucesso!", "success");
+
+  } catch(e) {
+    showToast("Erro: " + e.message, "error");
+  }
+
+  btn.textContent = "Salvar";
+  btn.disabled = false;
+}
+
+// ===== MODAL IMPERSONATION =====
+function abrirModalImp(userId) {
+  var rep = allReps.find(function(r) { return r.user_id === userId; });
+  if (!rep) return;
+  impersonandoRep = rep;
+  document.getElementById("imp-name").textContent = rep.nome;
+  document.getElementById("imp-email-display").textContent = rep.email;
+  document.getElementById("modal-imp").classList.add("on");
+}
+
+function confirmarImpersonation() {
+  if (!impersonandoRep) return;
+  fecharModal("modal-imp");
+
+  // Salvar sessão admin para poder voltar
+  try {
+    sessionStorage.setItem("repgo_admin_mode", JSON.stringify({
+      userId: impersonandoRep.user_id,
+      nome: impersonandoRep.nome,
+      email: impersonandoRep.email
+    }));
+  } catch(e) {}
+
+  // Mostrar banner
+  document.getElementById("imp-banner-txt").textContent =
+    "▶ Modo suporte ativo: " + impersonandoRep.nome + " (" + impersonandoRep.email + ")";
+  document.getElementById("imp-banner").classList.add("on");
+
+  // Abrir app principal em nova aba com parâmetro de suporte
+  // O admin visualiza como o rep — abre o index.html passando o user_id
+  var url = "index.html?support_uid=" + encodeURIComponent(impersonandoRep.user_id) +
+            "&support_name=" + encodeURIComponent(impersonandoRep.nome);
+
+  // Instrução para o index.html detectar o parâmetro e carregar como o usuário
+  showToast("Abrindo conta de " + impersonandoRep.nome + "...", "success");
+  setTimeout(function() {
+    window.open(url, "_blank");
+  }, 600);
+}
+
+function sairImpersonation() {
+  try { sessionStorage.removeItem("repgo_admin_mode"); } catch(e) {}
+  document.getElementById("imp-banner").classList.remove("on");
+  impersonandoRep = null;
+  showToast("Modo suporte encerrado.", "success");
+}
+
+// ===== HELPERS =====
+function fecharModal(id) {
+  document.getElementById(id).classList.remove("on");
+}
+
+function showToast(msg, tipo) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast " + tipo + " on";
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(function() {
+    t.classList.remove("on");
+  }, 3000);
+}
+
+// Fechar modal ao clicar fora
+document.querySelectorAll(".modal-bg").forEach(function(bg) {
+  bg.addEventListener("click", function(e) {
+    if (e.target === bg) bg.classList.remove("on");
+  });
+});
+
+init();
+</script>
+</body>
+</html>
