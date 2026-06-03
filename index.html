@@ -237,6 +237,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <button class="ftab" onclick="filtClientes('amarelo',this)">Mornos</button>
     <button class="ftab" onclick="filtClientes('vermelho',this)">Frios</button>
     <button class="ftab" onclick="filtCidades(this)">&#128205; Cidades</button>
+    <button class="ftab" onclick="filtDias(this)">&#128197; Dias</button>
   </div>
   <div id="lista-clientes"></div>
   <div id="s-cidade" style="display:none">
@@ -964,6 +965,46 @@ function filtClientes(f,btn){
   document.getElementById("lista-clientes").style.display="block";
   document.getElementById("s-cidade").style.display="none";
   renderClientes(f);
+}
+
+function filtDias(btn){
+  document.querySelectorAll(".ftab").forEach(function(t){t.classList.remove("on");});
+  btn.classList.add("on");
+  document.getElementById("s-cidade").style.display="none";
+  renderListaDias();
+}
+
+function renderListaDias(){
+  var el=document.getElementById("lista-clientes");
+  el.style.display="block";
+  // Ordenar todos os clientes por dias sem pedido (maior primeiro)
+  var lista=clientes.slice().sort(function(a,b){
+    var da=a.últimoPedido?Math.floor((Date.now()-new Date(a.últimoPedido).getTime())/86400000):99999;
+    var db2=b.últimoPedido?Math.floor((Date.now()-new Date(b.últimoPedido).getTime())/86400000):99999;
+    return db2-da;
+  });
+  if(!lista.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:24px 0'>Nenhum cliente cadastrado</p>";return;}
+  el.innerHTML=lista.map(function(c){
+    var st=getStatus(c);
+    var dias=c.últimoPedido?Math.floor((Date.now()-new Date(c.últimoPedido).getTime())/86400000):null;
+    var cor=st==="vermelho"?"#C8102E":st==="amarelo"?"#F59E0B":"#1D9E75";
+    var diasTxt=dias!==null?dias+" dias sem pedido":"Sem pedidos";
+    var badge="";
+    if(dias===null||dias>=80) badge="<span style='background:#fef2f2;color:#C8102E;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:6px'>Urgente</span>";
+    else if(dias>=60) badge="<span style='background:#fff3e0;color:#f97316;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:6px'>Crítico</span>";
+    else if(dias>=45) badge="<span style='background:#fff8e1;color:#F59E0B;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:6px'>Esfriando</span>";
+    return"<div class='cliente-card' style='border-left:4px solid "+cor+"' onclick='verCliente("+c.id+")'>"+
+      "<div style='display:flex;justify-content:space-between;align-items:flex-start'>"+
+      "<div>"+
+      "<div style='font-size:15px;font-weight:700'>"+c.nome+"</div>"+
+      "<div style='font-size:12px;color:#6b7280;margin-top:2px'>"+c.cidade+"</div>"+
+      "</div>"+
+      "<span style='font-size:22px;font-weight:800;color:"+cor+"'>"+( dias!==null?dias:"?")+"</span>"+
+      "</div>"+
+      "<div style='margin-top:8px;display:flex;align-items:center;justify-content:space-between'>"+
+      "<span style='font-size:12px;color:#6b7280'>"+diasTxt+badge+"</span>"+
+      (c.últimoPedidoValor?"<span style='font-size:13px;font-weight:600'>"+fmtBRL(c.últimoPedidoValor)+"</span>":"")+"</div></div>";
+  }).join("");
 }
 
 function filtCidades(btn){
