@@ -712,7 +712,7 @@ async function carregarClientes(){
 
 async function carregarPedidos(){
   var r=await db.from("pedidos").select("*").order("data_pedido",{ascending:false});
-  if(r.data) pedidos=r.data.map(function(p){return{id:p.id,clienteId:p.cliente_id,marca:p.marca,númeroPedido:p.número_pedido,data:p.data_pedido,cond:p.condicao_pagamento,total:parseFloat(p.valor_total)||0,pares:p.total_pares||0,percComissão:parseFloat(p.percentual_comissão)||10,valorComissão:parseFloat(p.valor_comissão)||0,obs:p.observacoes||""};});
+  if(r.data) pedidos=r.data.map(function(p){return{id:p.id,clienteId:p.cliente_id,marca:p.marca,númeroPedido:p.número_pedido,data:p.data_pedido,cond:p.condicao_pagamento,total:parseFloat(p.valor_total)||0,pares:p.total_pares||0,percComissão:parseFloat(p.percentual_comissao)||10,valorComissão:parseFloat(p.valor_comissao)||0,obs:p.observacoes||""};});
 }
 
 async function carregarGastos(){
@@ -731,13 +731,13 @@ async function salvarClienteDB(c){
 }
 
 async function salvarPedidoDB(ped){
-  var d={cliente_id:ped.clienteId,marca:ped.marca,número_pedido:ped.númeroPedido||null,data_pedido:ped.data,condicao_pagamento:ped.cond,total_pares:ped.pares,valor_total:ped.total,percentual_comissão:ped.percComissão,valor_comissão:ped.valorComissão,observacoes:ped.obs||null,itens:ped.itens||[]};
+  var d={cliente_id:ped.clienteId,marca:ped.marca,número_pedido:ped.númeroPedido||null,data_pedido:ped.data,condicao_pagamento:ped.cond,total_pares:ped.pares,valor_total:ped.total,percentual_comissao:ped.percComissão,valor_comissao:ped.valorComissão,observacoes:ped.obs||null,itens:ped.itens||[]};
   var r=await db.from("pedidos").insert(d).select().single();
   if(r.data){
     await db.from("clientes").update({último_pedido_data:ped.data,último_pedido_valor:ped.total}).eq("id",ped.clienteId);
     // Gerar parcelas
     var perc=ped.percComissão||10,partes=ped.cond?ped.cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/"):["30"],vp=ped.total/partes.length,parcelas=[];
-    for(var i=0;i<partes.length;i++){var dias=parseInt(partes[i])||30,dp=new Date(new Date(ped.data).getTime()+dias*86400000);parcelas.push({pedido_id:r.data.id,número_parcela:i+1,valor_parcela:Math.round(vp*100)/100,valor_comissão:Math.round(vp*perc/100*100)/100,valor_comissão_líquida:Math.round(vp*perc/100*100)/100,data_prevista:dp.toISOString().split("T")[0],status:"pendente"});}
+    for(var i=0;i<partes.length;i++){var dias=parseInt(partes[i])||30,dp=new Date(new Date(ped.data).getTime()+dias*86400000);parcelas.push({pedido_id:r.data.id,numero_parcela:i+1,valor_parcela:Math.round(vp*100)/100,valor_comissao:Math.round(vp*perc/100*100)/100,valor_comissao_líquida:Math.round(vp*perc/100*100)/100,data_prevista:dp.toISOString().split("T")[0],status:"pendente"});}
     await db.from("parcelas_comissão").insert(parcelas);
     return r.data.id;
   }
@@ -771,14 +771,14 @@ async function atualizarDashboard(){
     var agora=new Date(),mes=agora.getMonth()+1,ano=agora.getFullYear();
     var últimoDia=new Date(ano,agora.getMonth()+1,0).getDate();
     var ini=ano+"-"+String(mes).padStart(2,"0")+"-01",fim=ano+"-"+String(mes).padStart(2,"0")+"-"+String(últimoDia).padStart(2,"0");
-    rp=await db.from("pedidos").select("marca,valor_total,valor_comissão").gte("data_pedido",ini).lte("data_pedido",fim);
+    rp=await db.from("pedidos").select("marca,valor_total,valor_comissao").gte("data_pedido",ini).lte("data_pedido",fim);
     rg=await db.from("gastos").select("valor").gte("data_gasto",ini).lte("data_gasto",fim);
   }else{
-    rp=await db.from("pedidos").select("marca,valor_total,valor_comissão");
+    rp=await db.from("pedidos").select("marca,valor_total,valor_comissao");
     rg=await db.from("gastos").select("valor");
   }
   var td=0,tf=0,cd=0,cf=0,tg=0,pd=0,pf=0;
-  if(rp.data)rp.data.forEach(function(p){if(p.marca==="disney"){td+=parseFloat(p.valor_total)||0;cd+=parseFloat(p.valor_comissão)||0;pd++;}else{tf+=parseFloat(p.valor_total)||0;cf+=parseFloat(p.valor_comissão)||0;pf++;}});
+  if(rp.data)rp.data.forEach(function(p){if(p.marca==="disney"){td+=parseFloat(p.valor_total)||0;cd+=parseFloat(p.valor_comissao)||0;pd++;}else{tf+=parseFloat(p.valor_total)||0;cf+=parseFloat(p.valor_comissao)||0;pf++;}});
   if(rg.data)rg.data.forEach(function(g){tg+=parseFloat(g.valor)||0;});
   document.getElementById("stat-ped-disney").textContent=pd;
   document.getElementById("stat-ped-ferracini").textContent=pf;
@@ -1271,7 +1271,7 @@ async function lerPDF(event){
       var marca=(p.marca||"").toLowerCase().indexOf("ferracini")>=0?"ferracini":"disney";
       selecionarMarca(marca);
       var ts=document.getElementById("tipo-comissão");
-      if(p.percentual_comissão_total){ts.value=String(p.percentual_comissão_total);}
+      if(p.percentual_comissao_total){ts.value=String(p.percentual_comissao_total);}
       if(marca==="disney"&&p.itens&&p.itens.length){
         itens=[];
         p.itens.forEach(function(item){var prod=PRODS.find(function(x){return x.r===item.ref;});var ns=[],qtds={};if(item.grade){Object.keys(item.grade).forEach(function(k){var n=parseInt(k),q=parseInt(item.grade[k])||0;ns.push(n);if(q>0)qtds[n]=q;});ns.sort(function(a,b){return a-b;});}itens.push({r:item.ref,l:prod?prod.l:"IMPULSE",n:prod?prod.n:item.descricao||item.ref,ns:ns,qtds:qtds,qpad:1,unitarioOriginal:item.unitario||0});});
