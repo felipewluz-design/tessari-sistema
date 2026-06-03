@@ -698,6 +698,15 @@ function mostrarLogin(){
 
 async function carregarTudo(){
   await Promise.all([carregarClientes(),carregarPedidos(),carregarGastos()]);
+  // Calcular ultimo pedido de cada cliente
+  clientes.forEach(function(c){
+    var pedsCli=pedidos.filter(function(p){return p.clienteId===c.id;});
+    if(pedsCli.length){
+      pedsCli.sort(function(a,b){return new Date(b.data)-new Date(a.data);});
+      c.últimoPedido=pedsCli[0].data;
+      c.últimoPedidoValor=pedsCli[0].total;
+    }
+  });
   renderClientes("todos");
   popularSelectClientes();
   renderGastos();
@@ -707,7 +716,7 @@ async function carregarTudo(){
 // ===== SUPABASE =====
 async function carregarClientes(){
   var r=await db.from("clientes").select("*").order("nome");
-  if(r.data) clientes=r.data.map(function(c){return{id:c.id,nome:c.nome,cnpj:c.cnpj||"",endereco:c.endereco||"",cidade:c.cidade||"",cep:c.cep||"",tel:c.telefone||"",email:c.email||"",marca:c.marca||"disney",ciclo:c.ciclo_dias||90,obs:c.observacoes||"",últimoPedido:c.último_pedido_data,últimoPedidoValor:c.último_pedido_valor};});
+  if(r.data) clientes=r.data.map(function(c){return{id:c.id,nome:c.nome,cnpj:c.cnpj||"",endereco:c.endereco||"",cidade:c.cidade||"",cep:c.cep||"",tel:c.telefone||"",email:c.email||"",marca:c.marca||"disney",ciclo:c.ciclo_dias||90,obs:c.observacoes||"",últimoPedido:null,últimoPedidoValor:null};});
 }
 
 async function carregarPedidos(){
