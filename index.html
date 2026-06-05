@@ -742,7 +742,7 @@ async function salvarPedidoDB(ped){
     // Gerar parcelas
     var perc=ped.percComissão||10,partes=ped.cond?ped.cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/"):["30"],vp=ped.total/partes.length,parcelas=[];
     for(var i=0;i<partes.length;i++){var dias=parseInt(partes[i])||30,dp=new Date(new Date(ped.data).getTime()+dias*86400000);parcelas.push({pedido_id:r.data.id,numero_parcela:i+1,valor_parcela:Math.round(vp*100)/100,valor_comissao:Math.round(vp*perc/100*100)/100,valor_comissao_líquida:Math.round(vp*perc/100*100)/100,data_prevista:dp.toISOString().split("T")[0],status:"pendente"});}
-    await db.from("parcelas_comissão").insert(parcelas);
+    await db.from("parcelas_comissao").insert(parcelas);
     return r.data.id;
   }
   return null;
@@ -757,12 +757,12 @@ async function deletarGastoDB(id){await db.from("gastos").delete().eq("id",id);}
 
 async function deletarClienteDB(id){
   var peds=await db.from("pedidos").select("id").eq("cliente_id",id);
-  if(peds.data&&peds.data.length){var ids=peds.data.map(function(p){return p.id;});await db.from("parcelas_comissão").delete().in("pedido_id",ids);await db.from("pedidos").delete().eq("cliente_id",id);}
+  if(peds.data&&peds.data.length){var ids=peds.data.map(function(p){return p.id;});await db.from("parcelas_comissao").delete().in("pedido_id",ids);await db.from("pedidos").delete().eq("cliente_id",id);}
   await db.from("clientes").delete().eq("id",id);
 }
 
 async function deletarPedidoDB(id){
-  await db.from("parcelas_comissão").delete().eq("pedido_id",id);
+  await db.from("parcelas_comissao").delete().eq("pedido_id",id);
   await db.from("pedidos").delete().eq("id",id);
 }
 
@@ -918,6 +918,12 @@ function goTo(id){
   var tela=document.getElementById("s-"+id);
   if(!tela)return;
   tela.classList.add("on");
+  // Reset categoria ao abrir gastos
+  if(id==="gastos"){
+    catAtual="combustivel";
+    document.querySelectorAll(".cbt").forEach(function(b){b.classList.remove("on");});
+    var first=document.querySelector(".cbt");if(first)first.classList.add("on");
+  }
   var nb=document.getElementById("nb-"+id);if(nb)nb.classList.add("on");
   var sub=["novo-cliente","detalhe-cliente","marcas"];
   document.getElementById("back-btn").style.display=sub.indexOf(id)>=0?"block":"none";
