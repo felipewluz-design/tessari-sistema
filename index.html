@@ -396,11 +396,11 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   <div class="card">
     <p style="font-size:14px;font-weight:600;margin-bottom:12px">Registrar gasto</p>
     <div class="cgrid">
-      <button class="cbt on" onclick="selCat(this,'combustível')">Combustível</button>
-      <button class="cbt" onclick="selCat(this,'alimentação')">Alimentação</button>
-      <button class="cbt" onclick="selCat(this,'pedágio')">Pedágio</button>
+      <button class="cbt on" onclick="selCat(this,'combustivel')">Combustível</button>
+      <button class="cbt" onclick="selCat(this,'alimentacao')">Alimentação</button>
+      <button class="cbt" onclick="selCat(this,'pedagio')">Pedágio</button>
       <button class="cbt" onclick="selCat(this,'hospedagem')">Hospedagem</button>
-      <button class="cbt" onclick="selCat(this,'estácionamento')">Estácionamento</button>
+      <button class="cbt" onclick="selCat(this,'estacionamento')">Estacionamento</button>
       <button class="cbt" onclick="selCat(this,'outros')">Outros</button>
     </div>
     <div class="flbl">Descricao</div>
@@ -441,7 +441,7 @@ var SB_KEY = "sb_publishable_rJm-XhVdRxY0bCfd5PqERg_QDMzQMIL";
 
 // ===== STATE =====
 var db, clientes=[], pedidos=[], gastos=[], redes=[];
-var itens=[], condAtual="30DD", marcaAtual="disney", catAtual="combustível", telaAnterior="home";
+var itens=[], condAtual="30DD", marcaAtual="disney", catAtual="combustivel", telaAnterior="home";
 
 // ===== PRECOS =====
 var PRECOS={IMPULSE:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},SPARK:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},FLOW:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},BALLERINA:{g:[20,27],p:{"30DD":61.49,"60DD":62.69,"90DD":63.84,"30/60/90":61.49,"30/60/90/120":61.49,"60/90/120":62.69}},PRIME:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},ICON:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},VENTURE:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},FANTASY:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},TWIST:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},SHINE:{g:[20,29],p:{"30DD":71.34,"60DD":72.73,"90DD":74.07,"30/60/90":71.34,"30/60/90/120":71.34,"60/90/120":72.73}},LOOPING:{g:[24,33],p:{"30DD":66.87,"60DD":68.18,"90DD":69.43,"30/60/90":66.87,"30/60/90/120":66.87,"60/90/120":68.18}},URBAN:{g:[24,33],p:{"30DD":66.87,"60DD":68.18,"90DD":69.43,"30/60/90":66.87,"30/60/90/120":66.87,"60/90/120":68.18}},"FLASH LIGHT":{g:[24,33],p:{"30DD":75.79,"60DD":77.27,"90DD":78.70,"30/60/90":75.79,"30/60/90/120":75.79,"60/90/120":77.27}},LUMINE:{g:[24,33],p:{"30DD":75.79,"60DD":77.27,"90DD":78.70,"30/60/90":75.79,"30/60/90/120":75.79,"60/90/120":77.27}},CLASSIC:{g:[28,35],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},PUMP:{g:[28,37],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},JUMP:{g:[28,35],p:{"30DD":66.87,"60DD":68.18,"90DD":69.43,"30/60/90":66.87,"30/60/90/120":66.87,"60/90/120":68.18}},SPEED:{g:[28,35],p:{"30DD":115.91,"60DD":118.17,"90DD":120.35,"30/60/90":115.91,"30/60/90/120":115.91,"60/90/120":118.17}},CANDY:{g:[20,27],p:{"30DD":52.30,"60DD":53.32,"90DD":54.31,"30/60/90":52.30,"30/60/90/120":52.30,"60/90/120":53.32}},DREAM:{g:[28,34],p:{"30DD":56.67,"60DD":57.77,"90DD":58.84,"30/60/90":56.67,"30/60/90/120":56.67,"60/90/120":57.77}},DIAMOND:{g:[28,34],p:{"30DD":62.19,"60DD":63.41,"90DD":64.58,"30/60/90":62.19,"30/60/90/120":62.19,"60/90/120":63.41}},VIBE:{g:[28,34],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}}};
@@ -1497,6 +1497,12 @@ async function addGasto(){
   renderGastos();atualizarDashboard();
 }
 
+var catLabels={
+  "combustivel":"Combustível","alimentacao":"Alimentação","pedagio":"Pedágio",
+  "hospedagem":"Hospedagem","estacionamento":"Estacionamento","outros":"Outros",
+  "combustível":"Combustível","alimentação":"Alimentação","pedágio":"Pedágio","estácionamento":"Estacionamento"
+};
+function catLabel(c){return catLabels[c]||c||"Outros";}
 function renderGastos(){
   var el=document.getElementById("ghist");
   if(!gastos.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:16px 0'>Nenhum gasto</p>";document.getElementById("gtotal").style.display="none";document.getElementById("ghoje").textContent=fmtBRL(0);return;}
