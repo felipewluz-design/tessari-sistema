@@ -194,13 +194,12 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
     <span style="color:#fff;font-size:24px;font-weight:800" id="stat-comissão-líquida">R$ 0</span>
   </div>
   <div class="sgrid">
-    <div class="sbox" style="border-left:3px solid #003DA5"><div class="v" id="stat-ped-disney">0</div><div class="l">Pedidos Disney</div></div>
-    <div class="sbox" style="border-left:3px solid #C8102E"><div class="v" id="stat-ped-ferracini">0</div><div class="l">Pedidos Ferracini</div></div>
+    <div class="sbox" style="border-left:3px solid #003DA5"><div class="v" id="stat-ped-total">0</div><div class="l">Total pedidos</div></div>
     <div class="sbox" style="border-left:3px solid #1D9E75"><div class="v" id="stat-total">R$0</div><div class="l">Total vendido</div></div>
     <div class="sbox" style="border-left:3px solid #E8A83E"><div class="v" id="stat-gastos">R$0</div><div class="l">Gastos mês</div></div>
-    <div class="sbox" style="border-left:3px solid #003DA5"><div class="v" id="stat-comissão-disney">R$0</div><div class="l">Comissão Disney</div></div>
-    <div class="sbox" style="border-left:3px solid #C8102E"><div class="v" id="stat-comissão-ferracini">R$0</div><div class="l">Comissão Ferracini</div></div>
+    <div class="sbox" style="border-left:3px solid #C8102E"><div class="v" id="stat-comissao-total">R$0</div><div class="l">Total comissões</div></div>
   </div>
+  <div id="stat-marcas-grid" style="margin-bottom:8px"></div>
   <div id="alertas-home"></div>
   <div id="alerta-sem-marcas" style="display:none;background:#fff8e1;border:1px solid #F59E0B;border-radius:10px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
     <div>
@@ -212,7 +211,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   <div class="qagrid">
     <button class="qacard" onclick="goTo('disney')">
       <div class="qaicon" style="background:#eef2ff;color:#003DA5">+</div>
-      <h3>Novo pedido</h3><p>Disney ou Ferracini</p>
+      <h3>Novo pedido</h3><p id="novo-pedido-sub">Selecione a marca</p>
     </button>
     <button class="qacard" onclick="goTo('clientes')">
       <div class="qaicon" style="background:#ecfdf5;color:#1D9E75">*</div>
@@ -784,13 +783,36 @@ async function atualizarDashboard(){
   var td=0,tf=0,cd=0,cf=0,tg=0,pd=0,pf=0;
   if(rp.data)rp.data.forEach(function(p){if(p.marca==="disney"){td+=parseFloat(p.valor_total)||0;cd+=parseFloat(p.valor_comissao)||0;pd++;}else{tf+=parseFloat(p.valor_total)||0;cf+=parseFloat(p.valor_comissao)||0;pf++;}});
   if(rg.data)rg.data.forEach(function(g){tg+=parseFloat(g.valor)||0;});
-  document.getElementById("stat-ped-disney").textContent=pd;
-  document.getElementById("stat-ped-ferracini").textContent=pf;
-  document.getElementById("stat-total").textContent=fmtBRL(td+tf);
+  // Stats genéricos
+  var totalPeds=0,totalVendas=0,totalComissoes=0;
+  // Agrupar por marca
+  var porMarca={};
+  rp.data.forEach(function(p){
+    totalPeds++;
+    totalVendas+=parseFloat(p.valor_total)||0;
+    totalComissoes+=parseFloat(p.valor_comissao)||0;
+    var m=p.marca||"outros";
+    if(!porMarca[m])porMarca[m]={peds:0,vendas:0,comissao:0};
+    porMarca[m].peds++;
+    porMarca[m].vendas+=parseFloat(p.valor_total)||0;
+    porMarca[m].comissao+=parseFloat(p.valor_comissao)||0;
+  });
+  document.getElementById("stat-ped-total").textContent=totalPeds;
+  document.getElementById("stat-total").textContent=fmtBRL(totalVendas);
   document.getElementById("stat-gastos").textContent=fmtBRL(tg);
-  document.getElementById("stat-comissão-disney").textContent=fmtBRL(cd);
-  document.getElementById("stat-comissão-ferracini").textContent=fmtBRL(cf);
-  document.getElementById("stat-comissão-líquida").textContent=fmtBRL(cd+cf-tg);
+  document.getElementById("stat-comissao-total").textContent=fmtBRL(totalComissoes);
+  document.getElementById("stat-comissão-líquida").textContent=fmtBRL(totalComissoes-tg);
+  // Cards por marca
+  var cores=["#003DA5","#C8102E","#1D9E75","#E8A83E","#7C3AED","#0891B2"];
+  var marcasGrid=document.getElementById("stat-marcas-grid");
+  if(marcasGrid&&Object.keys(porMarca).length){
+    marcasGrid.innerHTML='<div class="sgrid">'+Object.keys(porMarca).map(function(m,i){
+      var cor=cores[i%cores.length];
+      return"<div class='sbox' style='border-left:3px solid "+cor+"'><div class='v'>"+fmtBRL(porMarca[m].comissao)+"</div><div class='l'>"+m+"</div></div>";
+    }).join("")+"</div>";
+  } else if(marcasGrid){
+    marcasGrid.innerHTML="";
+  }
   renderAlertasHome();
 }
 
