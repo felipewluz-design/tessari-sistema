@@ -1524,7 +1524,7 @@ function renderGastos(){
     var labelDia=dia===hoje?"Hoje":dataBR(dia);
     html+="<div style='padding:8px 0;border-bottom:2px solid #e5e7eb'>";
     html+="<div style='display:flex;justify-content:space-between;margin-bottom:4px'><span style='font-size:12px;font-weight:700;color:#374151'>"+labelDia+"</span><span style='font-size:12px;font-weight:700;color:#C8102E'>R$ "+totalDia.toFixed(2).replace(".",",")+"</span></div>";
-    lista.forEach(function(g){html+="<div class='gi'><div><div style='font-size:13px;font-weight:600'>"+catN[g.cat]+"</div><div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div><div style='display:flex;align-items:center;gap:8px'><span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span><button onclick='delGasto("+g.id+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px'>×</button></div></div>";});
+    lista.forEach(function(g){html+="<div class='gi'><div><div style='font-size:13px;font-weight:600'>"+catLabel(g.cat)+"</div><div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div><div style='display:flex;align-items:center;gap:8px'><span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span><button onclick='delGasto("+g.id+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px'>×</button></div></div>";});
     html+="</div>";
   });
   el.innerHTML=html;
