@@ -1355,13 +1355,13 @@ async function lerPDF(event){
         selecionarMarca(marca);
       }
       var ts=document.getElementById("tipo-comissao");
-      if(p.percentual_comissao_total){ts.value=String(p.percentual_comissao_total);}
+      if(ts&&p.percentual_comissao_total){ts.value=String(p.percentual_comissao_total);}
       if(marca==="disney"&&p.itens&&p.itens.length){
         itens=[];
         p.itens.forEach(function(item){var prod=PRODS.find(function(x){return x.r===item.ref;});var ns=[],qtds={};if(item.grade){Object.keys(item.grade).forEach(function(k){var n=parseInt(k),q=parseInt(item.grade[k])||0;ns.push(n);if(q>0)qtds[n]=q;});ns.sort(function(a,b){return a-b;});}itens.push({r:item.ref,l:prod?prod.l:"IMPULSE",n:prod?prod.n:item.descricao||item.ref,ns:ns,qtds:qtds,qpad:1,unitarioOriginal:item.unitario||0});});
         renderItens();atuResumo();
       }
-      if(marca==="ferracini"){document.getElementById("fer-num").value=p.numero||p.número||"";document.getElementById("fer-pares").value=p.total_pares||0;document.getElementById("fer-valor").value=p.valor_total||0;}
+      if(marca==="ferracini"){var ferNum=document.getElementById("fer-num");if(ferNum)ferNum.value=p.numero||p.número||"";var ferP=document.getElementById("fer-pares");var ferV=document.getElementById("fer-valor");if(ferP)ferP.value=p.total_pares||0;if(ferV)ferV.value=p.valor_total||0;}
       if(p.condicao_pagamento){
   var cs=document.getElementById("cond");
   // Normaliza: remove DD, DIAS, espacos, deixa so números e barras
@@ -1391,7 +1391,7 @@ async function lerPDF(event){
       if(stxt.innerHTML.indexOf("Cadastrar")<0)stxt.textContent="Importado: "+(p.total_pares||0)+" pares — R$ "+((p.valor_total||0).toFixed(2).replace(".",","));
     }
     document.getElementById("pdf-upload").value="";
-  }catch(e){console.error("PDF ERROR:",e.message,e.stack);stxt.textContent="Erro: "+e.message;}
+  }catch(e){console.error("PDF ERROR:",e.message,e.stack);stxt.textContent="Erro ao ler. Tente novamente. ("+e.message+")";}
 }
 
 function irCadastrar(d){
