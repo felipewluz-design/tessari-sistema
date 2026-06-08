@@ -1391,7 +1391,7 @@ async function lerPDF(event){
       if(stxt.innerHTML.indexOf("Cadastrar")<0)stxt.textContent="Importado: "+(p.total_pares||0)+" pares — R$ "+((p.valor_total||0).toFixed(2).replace(".",","));
     }
     document.getElementById("pdf-upload").value="";
-  }catch(e){stxt.textContent="Erro ao ler. Tente novamente.";}
+  }catch(e){console.error("PDF ERROR:",e.message,e.stack);stxt.textContent="Erro: "+e.message;}
 }
 
 function irCadastrar(d){
