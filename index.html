@@ -632,7 +632,7 @@ function selecionarMarcaRep(btn){
   btn.style.background="#0A2463";btn.style.color="#fff";btn.style.borderColor="#0A2463";
   marcaAtual=btn.dataset.marcaNome;
   // Preenche comissão com o normal da marca
-  var comissãoEl=document.getElementById("tipo-comissão");
+  var comissãoEl=document.getElementById("tipo-comissao");
   if(comissãoEl)comissãoEl.value=btn.dataset.comissãoNormal||6;
   // Esconde secao Disney, mostra Ferracini generico
   document.getElementById("plist-disney").style.display="none";
@@ -1192,7 +1192,7 @@ function selecionarMarca(marca){
   marcaAtual=marca;
   var bd=document.getElementById("btn-marca-disney"),bf=document.getElementById("btn-marca-ferracini");
   var ld=document.getElementById("plist-disney"),lf=document.getElementById("plist-ferracini");
-  var ts=document.getElementById("tipo-comissão");
+  var ts=document.getElementById("tipo-comissao");
   if(marca==="disney"){
     bd.style.background="#003DA5";bd.style.color="#fff";bd.style.borderColor="#003DA5";
     bf.style.background="#fff";bf.style.color="#6b7280";bf.style.borderColor="#e5e7eb";
@@ -1273,7 +1273,7 @@ function atuResumo(){
 
 async function salvarPedido(){
   var cliId=parseInt(document.getElementById("cli").value);if(!cliId){alert("Selecione o cliente.");return;}
-  var tp=0,tv=0,perc=parseFloat(document.getElementById("tipo-comissão").value)||6;
+  var tp=0,tv=0,perc=parseFloat(document.getElementById("tipo-comissao").value)||6;
   if(marcaAtual==="disney"){
     itens.forEach(function(item){var pr=getPreco(item.l,item);item.ns.forEach(function(n){var q=item.qtds[n]||0;tp+=q;tv+=q*pr;});});
     if(tp===0){alert("Adicione pelo menos um produto.");return;}
@@ -1281,7 +1281,7 @@ async function salvarPedido(){
     tp=parseInt(document.getElementById("fer-pares").value)||0;
     tv=parseFloat(document.getElementById("fer-valor").value)||0;
     if(tv===0){alert("Informe o valor total.");return;}
-    perc=parseFloat(document.getElementById("tipo-comissão").value)||6;
+    perc=parseFloat(document.getElementById("tipo-comissao").value)||6;
   }
   var obs=document.getElementById("obs").value;
   var btn=document.getElementById("btn-salvar-pedido");
@@ -1341,15 +1341,27 @@ async function lerPDF(event){
     if(r.pedido){
       var p=r.pedido;
       var marca=(p.marca||"").toLowerCase().indexOf("ferracini")>=0?"ferracini":"disney";
-      selecionarMarca(marca);
-      var ts=document.getElementById("tipo-comissão");
+      if(marcasRep.length){
+        // Rep com marcas proprias - tenta achar a marca
+        var btnMarca=document.querySelector("#marcas-btns button[data-marca-nome]");
+        if(btnMarca){
+          var found=false;
+          document.querySelectorAll("#marcas-btns button[data-marca-nome]").forEach(function(b){
+            if(b.dataset.marcaNome.toLowerCase().indexOf(marca)>=0){selecionarMarcaRep(b);found=true;}
+          });
+          if(!found)selecionarMarcaRep(document.querySelector("#marcas-btns button[data-marca-nome]"));
+        }
+      } else {
+        selecionarMarca(marca);
+      }
+      var ts=document.getElementById("tipo-comissao");
       if(p.percentual_comissao_total){ts.value=String(p.percentual_comissao_total);}
       if(marca==="disney"&&p.itens&&p.itens.length){
         itens=[];
         p.itens.forEach(function(item){var prod=PRODS.find(function(x){return x.r===item.ref;});var ns=[],qtds={};if(item.grade){Object.keys(item.grade).forEach(function(k){var n=parseInt(k),q=parseInt(item.grade[k])||0;ns.push(n);if(q>0)qtds[n]=q;});ns.sort(function(a,b){return a-b;});}itens.push({r:item.ref,l:prod?prod.l:"IMPULSE",n:prod?prod.n:item.descricao||item.ref,ns:ns,qtds:qtds,qpad:1,unitarioOriginal:item.unitario||0});});
         renderItens();atuResumo();
       }
-      if(marca==="ferracini"){document.getElementById("fer-num").value=p.número||"";document.getElementById("fer-pares").value=p.total_pares||0;document.getElementById("fer-valor").value=p.valor_total||0;}
+      if(marca==="ferracini"){document.getElementById("fer-num").value=p.numero||p.número||"";document.getElementById("fer-pares").value=p.total_pares||0;document.getElementById("fer-valor").value=p.valor_total||0;}
       if(p.condicao_pagamento){
   var cs=document.getElementById("cond");
   // Normaliza: remove DD, DIAS, espacos, deixa so números e barras
