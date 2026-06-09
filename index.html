@@ -734,7 +734,7 @@ async function salvarClienteDB(c){
 }
 
 async function salvarPedidoDB(ped){
-  var d={cliente_id:ped.clienteId,marca:ped.marca,número_pedido:ped.númeroPedido||null,data_pedido:ped.data,condicao_pagamento:ped.cond,total_pares:ped.pares,valor_total:ped.total,percentual_comissao:ped.percComissão,valor_comissao:ped.valorComissão,observacoes:ped.obs||null,itens:ped.itens||[]};
+  var d={cliente_id:ped.clienteId,marca:ped.marca,número_pedido:ped.númeroPedido||null,data_pedido:ped.data,condicao_pagamento:ped.cond,total_pares:ped.pares,valor_total:ped.total,percentual_comissao:ped.percComissao,valor_comissao:ped.valorComissao,observacoes:ped.obs||null,itens:ped.itens||[]};
   var r=await db.from("pedidos").insert(d).select().single();
   if(r.data){
     await db.from("clientes").update({último_pedido_data:ped.data,último_pedido_valor:ped.total}).eq("id",ped.clienteId);
@@ -1286,7 +1286,7 @@ async function salvarPedido(){
   var obs=document.getElementById("obs").value;
   var btn=document.getElementById("btn-salvar-pedido");
   btn.textContent="Salvando...";btn.disabled=true;
-  var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,númeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:dataHojeBR(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissão:perc,valorComissão:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
+  var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:dataHojeBR(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
   btn.textContent="Salvar pedido no sistema";btn.disabled=false;
   if(id){
     await carregarPedidos();await carregarClientes();popularSelectClientes();renderClientes("todos");atualizarDashboard();
