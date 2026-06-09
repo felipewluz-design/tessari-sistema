@@ -1,4 +1,4 @@
-const CACHE = 'repgo-v1';
+const CACHE = 'repgo-v2';
 const ASSETS = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
@@ -14,6 +14,10 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Nunca interceptar chamadas de API
+  if(e.request.url.includes('/api/')) {
+    return;
+  }
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
   );
