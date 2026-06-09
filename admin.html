@@ -618,6 +618,39 @@ tbody td { padding: 13px 16px; font-size: 13px; vertical-align: middle; }
   table { font-size: 12px; }
   thead th, tbody td { padding: 10px 12px; }
 }
+
+/* ====== MODAL RESUMO ====== */
+.resumo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.resumo-stat {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+.resumo-stat .ico { font-size: 22px; margin-bottom: 6px; }
+.resumo-stat .val { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+.resumo-stat .lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-top: 4px; font-family: var(--mono); }
+.resumo-loading { text-align: center; padding: 20px; color: var(--text2); font-size: 13px; }
+.ultima-acao-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.ultima-acao-box .titulo { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); font-family: var(--mono); margin-bottom: 10px; }
+.acao-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.acao-item:last-child { border-bottom: none; padding-bottom: 0; }
+.acao-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--navy); flex-shrink: 0; }
+.acao-desc { font-size: 13px; color: var(--text); flex: 1; }
+.acao-data { font-size: 11px; color: var(--text3); font-family: var(--mono); white-space: nowrap; }
+.rep-name-link { cursor: pointer; }
+.rep-name-link:hover { text-decoration: underline; color: var(--navy); }
 </style>
 </head>
 <body>
@@ -769,6 +802,30 @@ tbody td { padding: 13px 16px; font-size: 13px; vertical-align: middle; }
         Ao clicar em <strong>Entrar na conta</strong>, você será redirecionado ao app principal como este usuário. Um banner de aviso será exibido para lembrar que está no modo suporte.
       </p>
       <button class="btn-enter" onclick="confirmarImpersonation()">▶ Entrar na conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Resumo do Rep -->
+<div class="modal-bg" id="modal-resumo">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-hd">
+      <div><h3 id="resumo-nome">—</h3><p id="resumo-email">—</p></div>
+      <button class="modal-cls" onclick="fecharModal('modal-resumo')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="resumo-loading" class="resumo-loading">Carregando dados...</div>
+      <div id="resumo-conteudo" style="display:none">
+        <div class="resumo-grid">
+          <div class="resumo-stat"><div class="ico">👥</div><div class="val" id="resumo-clientes">—</div><div class="lbl">Clientes</div></div>
+          <div class="resumo-stat"><div class="ico">📦</div><div class="val" id="resumo-pedidos">—</div><div class="lbl">Pedidos no mês</div></div>
+          <div class="resumo-stat"><div class="ico">🕐</div><div class="val" id="resumo-dias" style="font-size:16px">—</div><div class="lbl">Último acesso</div></div>
+        </div>
+        <div class="ultima-acao-box">
+          <div class="titulo">Últimas atividades</div>
+          <div id="resumo-atividades"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -956,7 +1013,7 @@ function renderRow(r) {
 
   return [
     "<tr>",
-    "<td><div class='rep-name'>" + esc(r.nome) + "</div></td>",
+    "<td><div class='rep-name rep-name-link' onclick='abrirResumo(\"" + r.user_id + "\")'>" + esc(r.nome) + " <span style='font-size:11px;color:var(--text3)'>↗</span></div></td>",
     "<td><div class='rep-email'>" + esc(r.email) + "</div>" + (r.telefone ? "<div class='rep-tel'>" + esc(r.telefone) + "</div>" : "") + "</td>",
     "<td><span class='date-text'>" + createdFmt + "</span></td>",
     "<td><span class='date-text " + acessoClass + "'>" + acessoFmt + "</span></td>",
@@ -1114,6 +1171,70 @@ function sairImpersonation() {
   document.getElementById("imp-banner").classList.remove("on");
   impersonandoRep = null;
   showToast("Modo suporte encerrado.", "success");
+}
+
+
+// ===== MODAL RESUMO =====
+async function abrirResumo(userId) {
+  var rep = allReps.find(function(r) { return r.user_id === userId; });
+  if (!rep) return;
+
+  document.getElementById("resumo-nome").textContent = rep.nome;
+  document.getElementById("resumo-email").textContent = rep.email || "—";
+  document.getElementById("resumo-loading").style.display = "block";
+  document.getElementById("resumo-conteudo").style.display = "none";
+  document.getElementById("modal-resumo").classList.add("on");
+
+  try {
+    // Total clientes
+    var rCli = await db.from("clientes").select("id", {count: "exact", head: true}).eq("user_id", userId);
+    var totalClientes = rCli.count || 0;
+
+    // Pedidos no mês atual
+    var agora = new Date();
+    var mes = agora.getMonth() + 1;
+    var ano = agora.getFullYear();
+    var ini = ano + "-" + String(mes).padStart(2, "0") + "-01";
+    var fim = ano + "-" + String(mes).padStart(2, "0") + "-" + String(new Date(ano, mes, 0).getDate()).padStart(2, "0");
+    var rPed = await db.from("pedidos").select("id", {count: "exact", head: true}).eq("user_id", userId).gte("data_pedido", ini).lte("data_pedido", fim);
+    var pedidosMes = rPed.count || 0;
+
+    // Último acesso
+    var diasAcesso = "—";
+    if (rep.ultimo_acesso) {
+      var dias = Math.floor((Date.now() - new Date(rep.ultimo_acesso).getTime()) / 86400000);
+      diasAcesso = dias === 0 ? "Hoje" : dias === 1 ? "1 dia" : dias + " dias";
+    }
+
+    // Últimas atividades: últimos 5 pedidos
+    var rUlt = await db.from("pedidos").select("data_pedido, valor_total, marca").eq("user_id", userId).order("data_pedido", {ascending: false}).limit(5);
+    var ults = rUlt.data || [];
+
+    document.getElementById("resumo-clientes").textContent = totalClientes;
+    document.getElementById("resumo-pedidos").textContent = pedidosMes;
+    document.getElementById("resumo-dias").textContent = diasAcesso;
+
+    var atvsEl = document.getElementById("resumo-atividades");
+    if (!ults.length) {
+      atvsEl.innerHTML = "<div style='font-size:13px;color:var(--text3);padding:8px 0'>Nenhum pedido registrado ainda.</div>";
+    } else {
+      atvsEl.innerHTML = ults.map(function(p) {
+        var val = p.valor_total ? "R$ " + parseFloat(p.valor_total).toLocaleString("pt-BR", {minimumFractionDigits: 2}) : "";
+        var data = p.data_pedido ? new Date(p.data_pedido + "T12:00:00").toLocaleDateString("pt-BR") : "—";
+        return "<div class=\"acao-item\">" +
+          "<div class=\"acao-dot\"></div>" +
+          "<div class=\"acao-desc\">Pedido " + esc(p.marca || "—") + (val ? " · " + val : "") + "</div>" +
+          "<div class=\"acao-data\">" + data + "</div>" +
+          "</div>";
+      }).join("");
+    }
+
+    document.getElementById("resumo-loading").style.display = "none";
+    document.getElementById("resumo-conteudo").style.display = "block";
+
+  } catch(e) {
+    document.getElementById("resumo-loading").textContent = "Erro: " + e.message;
+  }
 }
 
 // ===== HELPERS =====
