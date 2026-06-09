@@ -549,6 +549,15 @@ function init(){
     alert("Erro ao conectar banco: "+e.message);
     return;
   }
+  // Detectar modo suporte admin via URL
+  var params=new URLSearchParams(window.location.search);
+  if(params.get("support_uid")){
+    supportUid=params.get("support_uid");
+    var supportName=params.get("support_name")||"Representante";
+    mostrarBannerSuporte(supportName);
+    entrarModoSuporte(supportUid,supportName);
+    return;
+  }
   // Verificar sessao
   db.auth.getSession().then(function(r){
     if(r.data&&r.data.session){
@@ -565,6 +574,32 @@ function init(){
       mostrarTelaLogin();
     }
   });
+}
+
+function mostrarBannerSuporte(nome){
+  var banner=document.getElementById("support-banner");
+  if(!banner){
+    banner=document.createElement("div");
+    banner.id="support-banner";
+    banner.style.cssText="background:#3730A3;color:#fff;padding:10px 20px;font-size:13px;display:flex;align-items:center;justify-content:space-between;font-family:system-ui,sans-serif;position:sticky;top:0;z-index:200;";
+    banner.innerHTML='<span>🔍 Modo suporte — visualizando conta de <strong>'+nome+'</strong></span><button onclick="window.close()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:system-ui,sans-serif;">✕ Fechar</button>';
+    document.body.insertBefore(banner,document.body.firstChild);
+  }
+}
+
+async function entrarModoSuporte(uid,nome){
+  document.getElementById("login-wrap").style.display="none";
+  document.querySelector(".app").style.display="block";
+  document.getElementById("logout-btn").style.display="none";
+  document.getElementById("hdate").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
+  document.getElementById("entrega").value=new Date(Date.now()+86400000*60).toISOString().split("T")[0];
+  var el=document.getElementById("saudacao-home");
+  if(el)el.textContent="Conta de "+nome;
+  // Carregar marcas via RPC
+  var rm=await db.rpc("admin_marcas_rep",{p_user_id:uid});
+  marcasRep=rm.data||[];
+  renderMarcasBtns();
+  await carregarTudo();
 }
 
 function mostrarTelaLogin(){
@@ -709,19 +744,28 @@ async function carregarTudo(){
 
 // ===== SUPABASE =====
 async function carregarClientes(){
-  var r=await db.from("clientes").select("*").order("nome");
+  var r=supportUid
+    ? await db.rpc("admin_clientes",{p_user_id:supportUid})
+    : await db.from("clientes").select("*").order("nome");
   if(r.data) clientes=r.data.map(function(c){return{id:c.id,nome:c.nome,cnpj:c.cnpj||"",endereco:c.endereco||"",cidade:c.cidade||"",cep:c.cep||"",tel:c.telefone||"",email:c.email||"",marca:c.marca||"disney",ciclo:c.ciclo_dias||90,obs:c.observacoes||"",últimoPedido:null,últimoPedidoValor:null};});
 }
 
 async function carregarPedidos(){
-  var r=await db.from("pedidos").select("*").order("data_pedido",{ascending:false});
+  var r=supportUid
+    ? await db.rpc("admin_pedidos",{p_user_id:supportUid})
+    : await db.from("pedidos").select("*").order("data_pedido",{ascending:false});
   if(r.data) pedidos=r.data.map(function(p){return{id:p.id,clienteId:p.cliente_id,marca:p.marca,númeroPedido:p.número_pedido,data:p.data_pedido,cond:p.condicao_pagamento,total:parseFloat(p.valor_total)||0,pares:p.total_pares||0,percComissão:parseFloat(p.percentual_comissao)||10,valorComissão:parseFloat(p.valor_comissao)||0,obs:p.observacoes||""};});
 }
 
 async function carregarGastos(){
-  var d7=new Date();d7.setDate(d7.getDate()-7);
-  var off=d7.getTimezoneOffset(),d7l=new Date(d7.getTime()-off*60000);
-  var r=await db.from("gastos").select("*").gte("data_gasto",d7l.toISOString().split("T")[0]).order("data_gasto",{ascending:false}).order("created_at",{ascending:false});
+  var r;
+  if(supportUid){
+    r=await db.rpc("admin_gastos",{p_user_id:supportUid});
+  }else{
+    var d7=new Date();d7.setDate(d7.getDate()-7);
+    var off=d7.getTimezoneOffset(),d7l=new Date(d7.getTime()-off*60000);
+    r=await db.from("gastos").select("*").gte("data_gasto",d7l.toISOString().split("T")[0]).order("data_gasto",{ascending:false}).order("created_at",{ascending:false});
+  }
   if(r.data) gastos=r.data.map(function(g){return{id:g.id,cat:g.categoria,ob:g.descricao||"",v:parseFloat(g.valor),data:g.data_gasto,h:new Date(g.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};});
 }
 
