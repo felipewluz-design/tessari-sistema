@@ -1276,7 +1276,9 @@ async function salvarPedido(){
   var cliId=parseInt(document.getElementById("cli").value);
   if(!cliId){alert("Selecione o cliente.");return;}
   var tp=0,tv=0,perc=parseFloat(document.getElementById("tipo-comissao").value)||6;
-  if(marcaAtual==="disney"){
+  // Verifica se é disney pela tela visivel, nao pelo nome da marca
+  var isDisney=document.getElementById("plist-disney").style.display!=="none";
+  if(isDisney){
     itens.forEach(function(item){var pr=getPreco(item.l,item);item.ns.forEach(function(n){var q=item.qtds[n]||0;tp+=q;tv+=q*pr;});});
     if(tp===0){alert("Adicione pelo menos um produto.");return;}
   }else{
@@ -1289,13 +1291,13 @@ async function salvarPedido(){
   var btn=document.getElementById("btn-salvar-pedido");
   btn.textContent="Salvando...";btn.disabled=true;
   try{
-    var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:dataHojeBR(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
+    var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:!isDisney?document.getElementById("fer-num").value:null,data:dataHojeBR(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:isDisney?JSON.parse(JSON.stringify(itens)):[]});
     btn.textContent="Salvar pedido no sistema";btn.disabled=false;
     if(id){
       await carregarPedidos();await carregarClientes();popularSelectClientes();renderClientes("todos");atualizarDashboard();
       itens=[];renderItens();atuResumo();
       document.getElementById("pedout").classList.remove("on");
-      if(marcaAtual==="ferracini"){document.getElementById("fer-num").value="";document.getElementById("fer-pares").value="";document.getElementById("fer-valor").value="";}
+      if(!isDisney){document.getElementById("fer-num").value="";document.getElementById("fer-pares").value="";document.getElementById("fer-valor").value="";}
       alert("Pedido salvo!");goTo("clientes");
     }else{alert("Erro ao salvar.");}
   }catch(e){btn.textContent="Salvar pedido no sistema";btn.disabled=false;alert("Erro: "+e.message);console.error(e);}
