@@ -191,7 +191,7 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
   </div>
   <div style="background:#0A2463;border-radius:12px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
     <span style="color:rgba(255,255,255,.7);font-size:14px;font-weight:500">Comissão líquida do mês</span>
-    <span style="color:#fff;font-size:24px;font-weight:800" id="stat-comissão-líquida">R$ 0</span>
+    <span style="color:#fff;font-size:24px;font-weight:800" id="stat-comissao-liquida">R$ 0</span>
   </div>
   <div class="sgrid">
     <div class="sbox" style="border-left:3px solid #003DA5"><div class="v" id="stat-ped-total">0</div><div class="l">Total pedidos</div></div>
@@ -604,7 +604,7 @@ function renderMarcasBtns(){
   document.getElementById("pedido-subtitle").textContent="Selecione a marca";
   container.innerHTML=marcasRep.map(function(m,i){
     var ativo=i===0;
-    return"<button data-marca-id='"+m.id+"' data-marca-nome='"+m.nome+"' data-comissão-normal='"+m.comissão_normal+"' data-comissão-especial='"+m.comissão_especial+"' "+
+    return"<button data-marca-id='"+m.id+"' data-marca-nome='"+m.nome+"' data-comissao-normal='"+m.comissão_normal+"' data-comissao-especial='"+m.comissão_especial+"' "+
       "onclick='selecionarMarcaRep(this)' "+
       "style='flex:1;min-width:calc(50% - 4px);padding:12px;border-radius:8px;border:2px solid "+(ativo?"#0A2463":"#e5e7eb")+";background:"+(ativo?"#0A2463":"#fff")+";color:"+(ativo?"#fff":"#6b7280")+";font-size:14px;font-weight:600;cursor:pointer;font-family:system-ui'>"+
       m.nome+"</button>";
@@ -632,8 +632,8 @@ function selecionarMarcaRep(btn){
   btn.style.background="#0A2463";btn.style.color="#fff";btn.style.borderColor="#0A2463";
   marcaAtual=btn.dataset.marcaNome;
   // Preenche comissão com o normal da marca
-  var comissãoEl=document.getElementById("tipo-comissao");
-  if(comissãoEl)comissãoEl.value=btn.dataset.comissãoNormal||6;
+  var comissaoEl=document.getElementById("tipo-comissao");
+  if(comissaoEl)comissaoEl.value=btn.dataset.comissaonormal||6;
   // Esconde secao Disney, mostra Ferracini generico
   document.getElementById("plist-disney").style.display="none";
   document.getElementById("plist-ferracini").style.display="block";
@@ -734,13 +734,13 @@ async function salvarClienteDB(c){
 }
 
 async function salvarPedidoDB(ped){
-  var d={cliente_id:ped.clienteId,marca:ped.marca,número_pedido:ped.númeroPedido||null,data_pedido:ped.data,condicao_pagamento:ped.cond,total_pares:ped.pares,valor_total:ped.total,percentual_comissao:ped.percComissao,valor_comissao:ped.valorComissao,observacoes:ped.obs||null,itens:ped.itens||[]};
+  var d={cliente_id:ped.clienteId,marca:ped.marca,numero_pedido:ped.numeroPedido||null,data_pedido:ped.data,condicao_pagamento:ped.cond,total_pares:ped.pares,valor_total:ped.total,percentual_comissao:ped.percComissao,valor_comissao:ped.valorComissao,observacoes:ped.obs||null,itens:ped.itens||[]};
   var r=await db.from("pedidos").insert(d).select().single();
   if(r.data){
-    await db.from("clientes").update({último_pedido_data:ped.data,último_pedido_valor:ped.total}).eq("id",ped.clienteId);
+    await db.from("clientes").update({ultimo_pedido_data:ped.data,ultimo_pedido_valor:ped.total}).eq("id",ped.clienteId);
     // Gerar parcelas
-    var perc=ped.percComissão||10,partes=ped.cond?ped.cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/"):["30"],vp=ped.total/partes.length,parcelas=[];
-    for(var i=0;i<partes.length;i++){var dias=parseInt(partes[i])||30,dp=new Date(new Date(ped.data).getTime()+dias*86400000);parcelas.push({pedido_id:r.data.id,numero_parcela:i+1,valor_parcela:Math.round(vp*100)/100,valor_comissao:Math.round(vp*perc/100*100)/100,valor_comissao_líquida:Math.round(vp*perc/100*100)/100,data_prevista:dp.toISOString().split("T")[0],status:"pendente"});}
+    var perc=ped.percComissao||10,partes=ped.cond?ped.cond.replace(/\s*DD/gi,"").replace(/\s*DIAS/gi,"").trim().split("/"):["30"],vp=ped.total/partes.length,parcelas=[];
+    for(var i=0;i<partes.length;i++){var dias=parseInt(partes[i])||30,dp=new Date(new Date(ped.data).getTime()+dias*86400000);parcelas.push({pedido_id:r.data.id,numero_parcela:i+1,valor_parcela:Math.round(vp*100)/100,valor_comissao:Math.round(vp*perc/100*100)/100,valor_comissao_liquida:Math.round(vp*perc/100*100)/100,data_prevista:dp.toISOString().split("T")[0],status:"pendente"});}
     await db.from("parcelas_comissao").insert(parcelas);
     return r.data.id;
   }
@@ -801,7 +801,7 @@ async function atualizarDashboard(){
   document.getElementById("stat-total").textContent=fmtBRL(totalVendas);
   document.getElementById("stat-gastos").textContent=fmtBRL(tg);
   document.getElementById("stat-comissao-total").textContent=fmtBRL(totalComissoes);
-  document.getElementById("stat-comissão-líquida").textContent=fmtBRL(totalComissoes-tg);
+  document.getElementById("stat-comissao-liquida").textContent=fmtBRL(totalComissoes-tg);
   // Cards por marca
   var cores=["#003DA5","#C8102E","#1D9E75","#E8A83E","#7C3AED","#0891B2"];
   var marcasGrid=document.getElementById("stat-marcas-grid");
@@ -1361,7 +1361,7 @@ async function lerPDF(event){
         p.itens.forEach(function(item){var prod=PRODS.find(function(x){return x.r===item.ref;});var ns=[],qtds={};if(item.grade){Object.keys(item.grade).forEach(function(k){var n=parseInt(k),q=parseInt(item.grade[k])||0;ns.push(n);if(q>0)qtds[n]=q;});ns.sort(function(a,b){return a-b;});}itens.push({r:item.ref,l:prod?prod.l:"IMPULSE",n:prod?prod.n:item.descricao||item.ref,ns:ns,qtds:qtds,qpad:1,unitarioOriginal:item.unitario||0});});
         renderItens();atuResumo();
       }
-      if(marca==="ferracini"){var ferNum=document.getElementById("fer-num");if(ferNum)ferNum.value=p.numero||p.número||"";var ferP=document.getElementById("fer-pares");var ferV=document.getElementById("fer-valor");if(ferP)ferP.value=p.total_pares||0;if(ferV)ferV.value=p.valor_total||0;}
+      if(marca==="ferracini"){var ferNum=document.getElementById("fer-num");if(ferNum)ferNum.value=p.numero||p.numero||"";var ferP=document.getElementById("fer-pares");var ferV=document.getElementById("fer-valor");if(ferP)ferP.value=p.total_pares||0;if(ferV)ferV.value=p.valor_total||0;}
       if(p.condicao_pagamento){
   var cs=document.getElementById("cond");
   // Normaliza: remove DD, DIAS, espacos, deixa so números e barras
@@ -1499,9 +1499,9 @@ async function salvarMarca(){
   var btn=document.querySelector("#form-marca .btn-blue");
   btn.textContent="Salvando...";btn.disabled=true;
   if(editMarcaId){
-    await db.from("marcas_rep").update({nome:nome,comissão_normal:normal,comissão_especial:especial}).eq("id",editMarcaId);
+    await db.from("marcas_rep").update({nome:nome,comissao_normal:normal,comissao_especial:especial}).eq("id",editMarcaId);
   }else{
-    await db.from("marcas_rep").insert({user_id:user.id,nome:nome,comissão_normal:normal,comissão_especial:especial});
+    await db.from("marcas_rep").insert({user_id:user.id,nome:nome,comissao_normal:normal,comissao_especial:especial});
   }
   btn.textContent="Salvar";btn.disabled=false;
   // Reload marcas
