@@ -1173,7 +1173,6 @@ async function salvarCliente(){
     ["nc-nome","nc-cnpj","nc-endereco","nc-cidade","nc-cep","nc-tel","nc-email","nc-obs","import-text"].forEach(function(f){var el=document.getElementById(f);if(el)el.value="";});
     goTo("clientes");
   }else alert("Erro ao salvar.");
-  }catch(e){alert("Erro: "+e.message);console.error(e);}
 }
 
 async function confirmarDelCliente(id,nome){
@@ -1272,9 +1271,10 @@ function atuResumo(){
   else{ma.style.background="#fff3cd";ma.style.borderColor="#ffc107";ma.style.color="#856404";}
 }
 
+
 async function salvarPedido(){
-  try{
-  var cliId=parseInt(document.getElementById("cli").value);if(!cliId){alert("Selecione o cliente.");return;}
+  var cliId=parseInt(document.getElementById("cli").value);
+  if(!cliId){alert("Selecione o cliente.");return;}
   var tp=0,tv=0,perc=parseFloat(document.getElementById("tipo-comissao").value)||6;
   if(marcaAtual==="disney"){
     itens.forEach(function(item){var pr=getPreco(item.l,item);item.ns.forEach(function(n){var q=item.qtds[n]||0;tp+=q;tv+=q*pr;});});
@@ -1288,15 +1288,17 @@ async function salvarPedido(){
   var obs=document.getElementById("obs").value;
   var btn=document.getElementById("btn-salvar-pedido");
   btn.textContent="Salvando...";btn.disabled=true;
-  var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:dataHojeBR(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
-  btn.textContent="Salvar pedido no sistema";btn.disabled=false;
-  if(id){
-    await carregarPedidos();await carregarClientes();popularSelectClientes();renderClientes("todos");atualizarDashboard();
-    itens=[];renderItens();atuResumo();
-    document.getElementById("pedout").classList.remove("on");
-    if(marcaAtual==="ferracini"){document.getElementById("fer-num").value="";document.getElementById("fer-pares").value="";document.getElementById("fer-valor").value="";}
-    alert("Pedido salvo!");goTo("clientes");
-  }else alert("Erro ao salvar.");
+  try{
+    var id=await salvarPedidoDB({clienteId:cliId,marca:marcaAtual,numeroPedido:marcaAtual==="ferracini"?document.getElementById("fer-num").value:null,data:dataHojeBR(),cond:document.getElementById("cond").value,pares:tp,total:tv,percComissao:perc,valorComissao:tv*perc/100,obs:obs,itens:marcaAtual==="disney"?JSON.parse(JSON.stringify(itens)):[]});
+    btn.textContent="Salvar pedido no sistema";btn.disabled=false;
+    if(id){
+      await carregarPedidos();await carregarClientes();popularSelectClientes();renderClientes("todos");atualizarDashboard();
+      itens=[];renderItens();atuResumo();
+      document.getElementById("pedout").classList.remove("on");
+      if(marcaAtual==="ferracini"){document.getElementById("fer-num").value="";document.getElementById("fer-pares").value="";document.getElementById("fer-valor").value="";}
+      alert("Pedido salvo!");goTo("clientes");
+    }else{alert("Erro ao salvar.");}
+  }catch(e){btn.textContent="Salvar pedido no sistema";btn.disabled=false;alert("Erro: "+e.message);console.error(e);}
 }
 
 function gerar(){
