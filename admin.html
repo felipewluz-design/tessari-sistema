@@ -1186,18 +1186,12 @@ async function abrirResumo(userId) {
   document.getElementById("modal-resumo").classList.add("on");
 
   try {
-    // Total clientes
-    var rCli = await db.from("clientes").select("id", {count: "exact", head: true}).eq("user_id", userId);
-    var totalClientes = rCli.count || 0;
+    // Buscar dados da view admin_resumo_reps (ignora RLS)
+    var rResumo = await db.from("admin_resumo_reps").select("*").eq("user_id", userId).single();
+    var resumo = rResumo.data || {};
 
-    // Pedidos no mês atual
-    var agora = new Date();
-    var mes = agora.getMonth() + 1;
-    var ano = agora.getFullYear();
-    var ini = ano + "-" + String(mes).padStart(2, "0") + "-01";
-    var fim = ano + "-" + String(mes).padStart(2, "0") + "-" + String(new Date(ano, mes, 0).getDate()).padStart(2, "0");
-    var rPed = await db.from("pedidos").select("id", {count: "exact", head: true}).eq("user_id", userId).gte("data_pedido", ini).lte("data_pedido", fim);
-    var pedidosMes = rPed.count || 0;
+    var totalClientes = resumo.total_clientes || 0;
+    var pedidosMes = resumo.pedidos_mes || 0;
 
     // Último acesso
     var diasAcesso = "—";
@@ -1206,8 +1200,8 @@ async function abrirResumo(userId) {
       diasAcesso = dias === 0 ? "Hoje" : dias === 1 ? "1 dia" : dias + " dias";
     }
 
-    // Últimas atividades: últimos 5 pedidos
-    var rUlt = await db.from("pedidos").select("data_pedido, valor_total, marca").eq("user_id", userId).order("data_pedido", {ascending: false}).limit(5);
+    // Últimas atividades via RPC que ignora RLS
+    var rUlt = await db.rpc("admin_ultimos_pedidos", { p_user_id: userId });
     var ults = rUlt.data || [];
 
     document.getElementById("resumo-clientes").textContent = totalClientes;
