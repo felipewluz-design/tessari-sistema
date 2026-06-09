@@ -1173,6 +1173,7 @@ async function salvarCliente(){
     ["nc-nome","nc-cnpj","nc-endereco","nc-cidade","nc-cep","nc-tel","nc-email","nc-obs","import-text"].forEach(function(f){var el=document.getElementById(f);if(el)el.value="";});
     goTo("clientes");
   }else alert("Erro ao salvar.");
+  }catch(e){alert("Erro: "+e.message);console.error(e);}
 }
 
 async function confirmarDelCliente(id,nome){
@@ -1272,6 +1273,7 @@ function atuResumo(){
 }
 
 async function salvarPedido(){
+  try{
   var cliId=parseInt(document.getElementById("cli").value);if(!cliId){alert("Selecione o cliente.");return;}
   var tp=0,tv=0,perc=parseFloat(document.getElementById("tipo-comissao").value)||6;
   if(marcaAtual==="disney"){
