@@ -410,10 +410,17 @@ pre{padding:14px;font-family:monospace;font-size:11px;white-space:pre-wrap;line-
       <button class="btn btn-green btn-sm" onclick="addGasto()">Salvar</button>
     </div>
   </div>
-  <div class="secao">Últimos 7 dias</div>
+  <div class="secao" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span>Histórico</span>
+    <div style="display:flex;gap:6px">
+      <button class="cbt gpb on" onclick="setGastosPeriodo('7',this)" style="padding:4px 10px;font-size:11px">7 dias</button>
+      <button class="cbt gpb" onclick="setGastosPeriodo('mes',this)" style="padding:4px 10px;font-size:11px">Mês</button>
+      <button class="cbt gpb" onclick="setGastosPeriodo('tudo',this)" style="padding:4px 10px;font-size:11px">Tudo</button>
+    </div>
+  </div>
   <div class="card" id="ghist" style="padding:0 14px"><p style="text-align:center;color:#6b7280;font-size:13px;padding:16px 0">Nenhum gasto registrado</p></div>
   <div id="gtotal" style="display:none;justify-content:space-between;font-weight:700;font-size:14px;padding:10px 0">
-    <span>Total periodo</span><span id="gttxt" style="color:#C8102E">R$ 0,00</span>
+    <span>Total período</span><span id="gttxt" style="color:#C8102E">R$ 0,00</span>
   </div>
 </div>
 </div>
@@ -719,9 +726,7 @@ async function carregarPedidos(){
 }
 
 async function carregarGastos(){
-  var d7=new Date();d7.setDate(d7.getDate()-7);
-  var off=d7.getTimezoneOffset(),d7l=new Date(d7.getTime()-off*60000);
-  var r=await db.from("gastos").select("*").gte("data_gasto",d7l.toISOString().split("T")[0]).order("data_gasto",{ascending:false}).order("created_at",{ascending:false});
+  var r=await db.from("gastos").select("*").order("data_gasto",{ascending:false}).order("created_at",{ascending:false});
   if(r.data) gastos=r.data.map(function(g){return{id:g.id,cat:g.categoria,ob:g.descricao||"",v:parseFloat(g.valor),data:g.data_gasto,h:new Date(g.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};});
 }
 
@@ -943,8 +948,8 @@ function goTo(id){
   // Reset categoria ao abrir gastos
   if(id==="gastos"){
     catAtual="combustivel";
-    document.querySelectorAll(".cbt").forEach(function(b){b.classList.remove("on");});
-    var first=document.querySelector(".cbt");if(first)first.classList.add("on");
+    document.querySelectorAll(".cgrid .cbt").forEach(function(b){b.classList.remove("on");});
+    var first=document.querySelector(".cgrid .cbt");if(first)first.classList.add("on");
   }
   var nb=document.getElementById("nb-"+id);if(nb)nb.classList.add("on");
   var sub=["novo-cliente","detalhe-cliente","marcas"];
@@ -1532,7 +1537,7 @@ async function deletarMarca(id){
 }
 
 // ===== GASTOS =====
-function selCat(btn,cat){document.querySelectorAll(".cbt").forEach(function(b){b.classList.remove("on");});btn.classList.add("on");catAtual=cat;}
+function selCat(btn,cat){document.querySelectorAll(".cgrid .cbt").forEach(function(b){b.classList.remove("on");});btn.classList.add("on");catAtual=cat;}
 
 async function addGasto(){
   var v=parseFloat(document.getElementById("gval").value);if(!v||v<=0){alert("Informe um valor.");return;}
@@ -1549,28 +1554,60 @@ var catLabels={
   "combustível":"Combustível","alimentação":"Alimentação","pedágio":"Pedágio","estácionamento":"Estacionamento"
 };
 function catLabel(c){return catLabels[c]||c||"Outros";}
+var gastosPeriodo="7";
+function setGastosPeriodo(p,btn){
+  gastosPeriodo=p;
+  document.querySelectorAll(".gpb").forEach(function(b){b.classList.remove("on");});
+  if(btn)btn.classList.add("on");
+  renderGastos();
+}
+function gastosFiltrados(){
+  if(gastosPeriodo==="tudo")return gastos;
+  var hoje=new Date(),limite;
+  if(gastosPeriodo==="mes"){
+    limite=hoje.getFullYear()+"-"+String(hoje.getMonth()+1).padStart(2,"0")+"-01";
+  }else{
+    var d7=new Date();d7.setDate(d7.getDate()-7);
+    var off=d7.getTimezoneOffset(),d7l=new Date(d7.getTime()-off*60000);
+    limite=d7l.toISOString().split("T")[0];
+  }
+  return gastos.filter(function(g){return (g.data||"")>=limite;});
+}
 function renderGastos(){
   var el=document.getElementById("ghist");
-  if(!gastos.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:16px 0'>Nenhum gasto</p>";document.getElementById("gtotal").style.display="none";document.getElementById("ghoje").textContent=fmtBRL(0);return;}
-  var hoje=dataHojeBR(),porDia={};
-  gastos.forEach(function(g){var d=g.data||hoje;if(!porDia[d])porDia[d]=[];porDia[d].push(g);});
+  var hoje=dataHojeBR();
+  var d7=new Date();d7.setDate(d7.getDate()-7);
+  var off=d7.getTimezoneOffset(),d7l=new Date(d7.getTime()-off*60000).toISOString().split("T")[0];
+  var inicioMes=new Date().getFullYear()+"-"+String(new Date().getMonth()+1).padStart(2,"0")+"-01";
+  var totalHoje=0,totalSemana=0,totalMes=0;
+  gastos.forEach(function(g){
+    var d=g.data||hoje;
+    if(d===hoje)totalHoje+=g.v;
+    if(d>=d7l)totalSemana+=g.v;
+    if(d>=inicioMes)totalMes+=g.v;
+  });
+  document.getElementById("ghoje").textContent=fmtBRL(totalHoje);
+  var elSem=document.getElementById("gsem");if(elSem)elSem.textContent=fmtBRL(totalSemana);
+  var elMes=document.getElementById("gmes");if(elMes)elMes.textContent=fmtBRL(totalMes);
+  var lista=gastosFiltrados();
+  if(!lista.length){el.innerHTML="<p style='text-align:center;color:#6b7280;font-size:13px;padding:16px 0'>Nenhum gasto</p>";document.getElementById("gtotal").style.display="none";return;}
+  var porDia={};
+  lista.forEach(function(g){var d=g.data||hoje;if(!porDia[d])porDia[d]=[];porDia[d].push(g);});
   var dias=Object.keys(porDia).sort(function(a,b){return b.localeCompare(a);});
-  var html="",totalHoje=0,totalGeral=0;
+  var html="",totalGeral=0;
   dias.forEach(function(dia){
-    var lista=porDia[dia],totalDia=0;
-    lista.forEach(function(g){totalDia+=g.v;});
+    var diaLista=porDia[dia],totalDia=0;
+    diaLista.forEach(function(g){totalDia+=g.v;});
     totalGeral+=totalDia;
-    if(dia===hoje)totalHoje=totalDia;
     var labelDia=dia===hoje?"Hoje":dataBR(dia);
     html+="<div style='padding:8px 0;border-bottom:2px solid #e5e7eb'>";
     html+="<div style='display:flex;justify-content:space-between;margin-bottom:4px'><span style='font-size:12px;font-weight:700;color:#374151'>"+labelDia+"</span><span style='font-size:12px;font-weight:700;color:#C8102E'>R$ "+totalDia.toFixed(2).replace(".",",")+"</span></div>";
-    lista.forEach(function(g){html+="<div class='gi'><div><div style='font-size:13px;font-weight:600'>"+catLabel(g.cat)+"</div><div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div><div style='display:flex;align-items:center;gap:8px'><span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span><button onclick='delGasto("+g.id+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px'>×</button></div></div>";});
+    diaLista.forEach(function(g){html+="<div class='gi'><div><div style='font-size:13px;font-weight:600'>"+catLabel(g.cat)+"</div><div style='font-size:11px;color:#6b7280'>"+(g.ob||g.h)+"</div></div><div style='display:flex;align-items:center;gap:8px'><span style='font-size:14px;font-weight:700'>R$ "+g.v.toFixed(2).replace(".",",")+"</span><button onclick='delGasto("+g.id+")' style='background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px'>×</button></div></div>";});
     html+="</div>";
   });
   el.innerHTML=html;
   document.getElementById("gttxt").textContent="R$ "+totalGeral.toFixed(2).replace(".",",");
   document.getElementById("gtotal").style.display="flex";
-  document.getElementById("ghoje").textContent=fmtBRL(totalHoje);
 }
 
 async function delGasto(id){
