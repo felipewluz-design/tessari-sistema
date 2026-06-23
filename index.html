@@ -1092,6 +1092,20 @@
   </div>
 </div>
 
+<!-- Modal detalhes pedido -->
+<div class="modal-overlay" id="modal-pedido">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-pedido-titulo">Detalhes do pedido</div>
+    <div id="modal-pedido-conteudo"></div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" style="flex:1" onclick="fecharModal('modal-pedido')">Fechar</button>
+      <button class="btn btn-danger" style="flex:1" onclick="confirmarDeletarPedido()">🗑️ Excluir</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -1696,7 +1710,7 @@ async function carregarPedidos() {
     el.innerHTML = todosPedidos.map(p => {
       const nomeCliente = p.rg_clientes?.nome || p.cliente_nome || 'Cliente';
       const dataStr = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
-      return `<div class="pedido-item">
+      return `<div class="pedido-item" onclick="abrirDetalhesPedido('${p.id}')">
         <div class="pedido-header">
           <div>
             <div class="pedido-marca">${escHtml(p.marca || '')}</div>
@@ -2192,6 +2206,66 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // =============================================
 // INIT
 // =============================================
+function abrirDetalhesPedido(id) {
+  const p = todosPedidos.find(p => p.id === id);
+  if (!p) return;
+  const nomeCliente = p.rg_clientes?.nome || p.cliente_nome || 'Cliente';
+  const dataStr = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
+  const previsao = p.previsao_faturamento ? new Date(p.previsao_faturamento + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+
+  document.getElementById('modal-pedido-titulo').textContent = p.marca || 'Pedido';
+  document.getElementById('modal-pedido-conteudo').innerHTML = `
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px">
+      <span style="color:var(--gray-500)">Cliente</span><span style="font-weight:600">${escHtml(nomeCliente)}</span>
+    </div>
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px">
+      <span style="color:var(--gray-500)">Nº Pedido</span><span style="font-weight:600">${escHtml(p.numero_pedido || '—')}</span>
+    </div>
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px">
+      <span style="color:var(--gray-500)">Pares</span><span style="font-weight:600">${p.pares || '—'}</span>
+    </div>
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px">
+      <span style="color:var(--gray-500)">Valor total</span><span style="font-weight:600">${fmt(p.valor_total)}</span>
+    </div>
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px">
+      <span style="color:var(--gray-500)">Comissão</span><span style="font-weight:600;color:var(--green)">${fmt(p.comissao_valor)} (${p.comissao_percentual || 0}%)</span>
+    </div>
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px">
+      <span style="color:var(--gray-500)">Cond. pagamento</span><span style="font-weight:600">${escHtml(p.condicao_pagamento || '—')}</span>
+    </div>
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:14px">
+      <span style="color:var(--gray-500)">Prev. faturamento</span><span style="font-weight:600">${previsao}</span>
+    </div>
+    <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px">
+      <span style="color:var(--gray-500)">Data</span><span style="font-weight:600">${dataStr}</span>
+    </div>
+    ${p.observacoes ? `<div style="margin-top:8px;padding:10px;background:var(--gray-50);border-radius:8px;font-size:13px;color:var(--gray-600)">${escHtml(p.observacoes)}</div>` : ''}
+  `;
+  document.getElementById('modal-pedido').dataset.pedidoId = id;
+  abrirModal('modal-pedido');
+}
+
+function confirmarDeletarPedido() {
+  const id = document.getElementById('modal-pedido').dataset.pedidoId;
+  if (!id) return;
+  if (!confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) return;
+  deletarPedido(id);
+}
+
+async function deletarPedido(id) {
+  mostrarLoading('Excluindo pedido...');
+  try {
+    await sb(`/rest/v1/rg_pedidos?id=eq.${id}`, { method: 'DELETE' });
+    fecharModal('modal-pedido');
+    mostrarToast('Pedido excluído.');
+    await carregarPedidos();
+    await carregarDashboard();
+  } catch(e) {
+    console.error('Erro ao deletar:', e);
+    mostrarToast('Erro ao excluir pedido.');
+  } finally { esconderLoading(); }
+}
+
 async function init() {
   const sessaoStr = localStorage.getItem('repgo_session');
   if (sessaoStr) {
