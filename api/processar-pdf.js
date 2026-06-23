@@ -61,6 +61,8 @@ Formato exato do JSON:
 Regras:
 - Se não encontrar um campo, use null
 - Valores monetários devem ser números (ex: 1500.00, não "R$ 1.500,00")
+- cliente: é o COMPRADOR do pedido — nome da loja, pessoa física ou razão social de quem está comprando. NUNCA use o nome da empresa emissora do formulário, da representação comercial ou do vendedor como cliente. Em pedidos manuscritos, procure campos como "Razão Social", "Cliente", "Comprador", "Loja". O vendedor/representante nunca é o cliente.
+- marca: é a marca dos produtos vendidos (ex: Disney, Ferracini, Nike, Adidas). NUNCA use o nome da representação comercial ou distribuidora como marca.
 - comissao_percentual é APENAS a comissão do representante comercial (campo "comissão rep", "% comissão", "comissão" explícita). NUNCA use "C. DUP.", "C. FAT.", "desconto de duplicata", "desconto de faturamento" ou qualquer desconto do cliente como comissão — esses são descontos comerciais, não comissão do rep. Se não houver comissão explícita do representante, retorne null.
 - condicao_pagamento: extraia o prazo de pagamento (ex: "30/60/90 dias"), ignorando percentuais de desconto
 - previsao_faturamento: procure por "previsão de faturamento", "prev. fat.", "data entrega" — retorne em formato YYYY-MM-DD
