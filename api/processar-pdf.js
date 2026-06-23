@@ -37,8 +37,7 @@ Retorne APENAS um JSON valido, sem texto antes ou depois, sem markdown.
     "previsao_faturamento": "ex: 1a quinzena julho/2026 ou vazio",
     "total_pares": 0,
     "valor_total": 0,
-    "marca": "disney ou ferracini",
-    "tipo_tabela": "varejo ou rede",
+    "marca": "nome exato da marca/fabricante encontrado no documento",
     "percentual_comissao_faturamento": 0,
     "percentual_comissao_duplicata": 0,
     "percentual_comissao_total": 0,
@@ -49,22 +48,24 @@ Retorne APENAS um JSON valido, sem texto antes ou depois, sem markdown.
         "pares": 0,
         "unitario": 0,
         "total": 0,
-        "grade": {"20": 1, "21": 2}
+        "grade": {"36": 1, "37": 2}
       }
     ]
   }
 }
 REGRAS:
 - Extraia TODOS os itens sem pular nenhum
-- Para cada item leia a linha de numeros e a linha de quantidades logo abaixo
-- Disney/Dyan: grade infantil 20-35. Ferracini: grade adulta 37-47
-- valor_total = total liquido (apos desconto)
-- marca = ferracini se for Ferracini, senao disney
-- tipo_tabela = rede se mencionar rede ou tabela especial, senao varejo
-- Se for Ferracini: leia os campos C. FAT. % e C. DUP. % e coloque em percentual_comissao_faturamento e percentual_comissao_duplicata. percentual_comissao_total = soma dos dois
-- Se for Disney: percentual_comissao_total = 10 se varejo, 5 se rede
-- previsao_faturamento: se for Ferracini, leia o campo "PREVISAO DE FATURAMENTO" ou "1a Quinz" etc
-- previsao_entrega: se for Disney, leia "Prev. Entrega"`;
+- marca: coloque o nome da marca/fabricante exatamente como aparece no documento (ex: Nike, Ferracini, Adidas, Puma). Nao invente — use o que esta escrito
+- Para cada item leia a grade de tamanhos e quantidades
+- valor_total = total liquido (apos desconto se houver)
+- Se o documento tiver campos C. FAT. % e C. DUP. %: preencha percentual_comissao_faturamento e percentual_comissao_duplicata. percentual_comissao_total = soma dos dois
+- Se o documento tiver apenas um percentual de comissao, coloque em percentual_comissao_total
+- Se nao houver percentual de comissao no documento, deixe todos como 0
+- previsao_faturamento: leia o campo "PREVISAO DE FATURAMENTO" se existir
+- previsao_entrega: leia campo de previsao de entrega se existir
+- total_pares: some todos os pares de todos os itens
+- Para grade: use os numeros dos tamanhos como chave e a quantidade como valor. Ex: {"36":2,"37":3,"38":2}`;
+
     var response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
