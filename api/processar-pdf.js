@@ -60,8 +60,10 @@ Formato exato do JSON:
 
 Regras:
 - Se não encontrar um campo, use null
-- valores monetários devem ser números (ex: 1500.00, não "R$ 1.500,00")
-- Se encontrar % de comissão, preencha comissao_percentual; se encontrar valor de comissão em reais, preencha comissao_valor
+- Valores monetários devem ser números (ex: 1500.00, não "R$ 1.500,00")
+- comissao_percentual é APENAS a comissão do representante comercial (campo "comissão rep", "% comissão", "comissão" explícita). NUNCA use "C. DUP.", "C. FAT.", "desconto de duplicata", "desconto de faturamento" ou qualquer desconto do cliente como comissão — esses são descontos comerciais, não comissão do rep. Se não houver comissão explícita do representante, retorne null.
+- condicao_pagamento: extraia o prazo de pagamento (ex: "30/60/90 dias"), ignorando percentuais de desconto
+- previsao_faturamento: procure por "previsão de faturamento", "prev. fat.", "data entrega" — retorne em formato YYYY-MM-DD
 - Se o documento não parecer ser um pedido, retorne todos os campos como null mas mantenha a estrutura`;
 
   try {
