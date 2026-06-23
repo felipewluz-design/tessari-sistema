@@ -962,6 +962,10 @@
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
       <span>Marcas</span>
     </button>
+    <button class="nav-item" id="nav-relatorios" onclick="navegar('relatorios')">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+      <span>Relatório</span>
+    </button>
   </nav>
 </div><!-- /app -->
 
@@ -1263,6 +1267,13 @@ async function iniciarApp() {
   // Carregar perfil
   await carregarPerfil();
 
+  // Modo suporte: nunca mostrar onboarding, ir direto pro app
+  if (modoSuporte) {
+    mostrarApp();
+    navegar('dashboard');
+    return;
+  }
+
   // Onboarding?
   if (!perfilAtual?.nome) {
     mostrarOnboarding();
@@ -1348,6 +1359,7 @@ function navegar(tela) {
     pedidos: 'Pedidos',
     gastos: 'Gastos',
     marcas: 'Marcas',
+    relatorios: 'Relatórios',
     'novo-pedido': 'Novo Pedido'
   }[tela] || 'RepGo';
 
@@ -1375,6 +1387,7 @@ function navegar(tela) {
   else if (tela === 'pedidos') carregarPedidos();
   else if (tela === 'gastos') carregarGastos();
   else if (tela === 'marcas') carregarMarcas();
+  else if (tela === 'relatorios') carregarRelatorios();
 }
 
 // =============================================
@@ -2221,6 +2234,236 @@ function mostrarLoading(msg = 'Carregando...') {
 
 function esconderLoading() {
   document.getElementById('loading').classList.remove('visivel');
+}
+
+// =============================================
+// RELATÓRIOS
+// =============================================
+let anoRelatorio = new Date().getFullYear();
+
+function mudarAnoRelatorio(delta) {
+  anoRelatorio += delta;
+  document.getElementById('rel-ano-label').textContent = anoRelatorio;
+  carregarRelatorios();
+}
+
+async function carregarRelatorios() {
+  const uid = modoSuporte ? suporteUid : usuarioAtual.id;
+  document.getElementById('rel-ano-label').textContent = anoRelatorio;
+
+  try {
+    // Carregar pedidos e gastos do ano
+    const [pedidos, gastos] = await Promise.all([
+      modoSuporte
+        ? sbRpc('rg_suporte_pedidos', { p_user_id: uid })
+        : sb(`/rest/v1/rg_pedidos?user_id=eq.${uid}&select=*`),
+      modoSuporte
+        ? sbRpc('rg_suporte_gastos', { p_user_id: uid })
+        : sb(`/rest/v1/rg_gastos?user_id=eq.${uid}&select=*`)
+    ]);
+
+    const pedidosAno = (pedidos || []).filter(p => new Date(p.created_at).getFullYear() === anoRelatorio);
+    const gastosAno = (gastos || []).filter(g => new Date(g.data + 'T00:00:00').getFullYear() === anoRelatorio);
+
+    const totalComissao = pedidosAno.reduce((s, p) => s + (parseFloat(p.comissao_valor) || 0), 0);
+    const totalGastos = gastosAno.reduce((s, g) => s + (parseFloat(g.valor) || 0), 0);
+    const totalLiquido = totalComissao - totalGastos;
+
+    document.getElementById('rel-comissao-total').textContent = fmt(totalComissao);
+    document.getElementById('rel-gastos-total').textContent = fmt(totalGastos);
+    document.getElementById('rel-liquido-total').textContent = fmt(totalLiquido);
+    document.getElementById('rel-pedidos-total').textContent = pedidosAno.length + ' pedidos · ' + pedidosAno.reduce((s,p) => s + (parseInt(p.pares)||0), 0) + ' pares';
+
+    // Por mês
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const porMes = Array.from({length:12}, (_, i) => {
+      const ped = pedidosAno.filter(p => new Date(p.created_at).getMonth() === i);
+      const gas = gastosAno.filter(g => new Date(g.data + 'T00:00:00').getMonth() === i);
+      const comissao = ped.reduce((s,p) => s + (parseFloat(p.comissao_valor)||0), 0);
+      const gasto = gas.reduce((s,g) => s + (parseFloat(g.valor)||0), 0);
+      return { mes: meses[i], comissao, gasto, liquido: comissao - gasto, qtd: ped.length };
+    });
+
+    const mesEl = document.getElementById('rel-por-mes');
+    const mesesComDados = porMes.filter(m => m.comissao > 0 || m.gasto > 0);
+    if (mesesComDados.length === 0) {
+      mesEl.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:16px;font-size:14px">Sem dados neste ano</div>';
+    } else {
+      mesEl.innerHTML = mesesComDados.map(m => `
+        <div style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:6px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px">
+          <div style="width:36px;height:36px;background:var(--blue-light);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--blue);flex-shrink:0">${m.mes}</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:13px;color:var(--gray-500)">Comissão</span>
+              <span style="font-size:13px;font-weight:600;color:var(--green)">${fmt(m.comissao)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:13px;color:var(--gray-500)">Gastos</span>
+              <span style="font-size:13px;font-weight:600;color:var(--red)">−${fmt(m.gasto)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:12px;color:var(--gray-400)">${m.qtd} pedidos</span>
+              <span style="font-size:13px;font-weight:700;color:${m.liquido >= 0 ? 'var(--blue)' : 'var(--red)'}">${fmt(m.liquido)}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Por marca
+    const porMarca = {};
+    pedidosAno.forEach(p => {
+      const marca = p.marca || 'Sem marca';
+      if (!porMarca[marca]) porMarca[marca] = { comissao: 0, vendas: 0, qtd: 0 };
+      porMarca[marca].comissao += parseFloat(p.comissao_valor) || 0;
+      porMarca[marca].vendas += parseFloat(p.valor_total) || 0;
+      porMarca[marca].qtd++;
+    });
+
+    const marcaEl = document.getElementById('rel-por-marca');
+    const marcasEntries = Object.entries(porMarca).sort((a,b) => b[1].comissao - a[1].comissao);
+    if (marcasEntries.length === 0) {
+      marcaEl.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:16px;font-size:14px">Sem pedidos neste ano</div>';
+    } else {
+      marcaEl.innerHTML = marcasEntries.map(([nome, d]) => `
+        <div style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:6px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--gray-800)">${escHtml(nome)}</div>
+            <div style="font-size:12px;color:var(--gray-400)">${d.qtd} pedidos · Vendas: ${fmt(d.vendas)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-weight:700;color:var(--blue)">${fmt(d.comissao)}</div>
+            <div style="font-size:11px;color:var(--gray-400)">comissão</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Por categoria gasto
+    const porCat = {};
+    gastosAno.forEach(g => {
+      const cat = g.categoria || 'Outros';
+      if (!porCat[cat]) porCat[cat] = 0;
+      porCat[cat] += parseFloat(g.valor) || 0;
+    });
+
+    const icones = { 'Combustivel': '🚗', 'Estacionamento': '🅿️', 'Alimentacao': '🍽️', 'Hospedagem': '🏨', 'Telefone': '📱', 'Viagem': '✈️', 'Material': '📦', 'Outros': '💡', 'Combustível': '🚗', 'Alimentação': '🍽️' };
+
+    const catEl = document.getElementById('rel-por-categoria');
+    const catEntries = Object.entries(porCat).sort((a,b) => b[1] - a[1]);
+    if (catEntries.length === 0) {
+      catEl.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:16px;font-size:14px">Sem gastos neste ano</div>';
+    } else {
+      catEl.innerHTML = catEntries.map(([cat, valor]) => `
+        <div style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:6px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:22px">${icones[cat] || '💡'}</span>
+            <span style="font-size:14px;font-weight:600;color:var(--gray-800)">${escHtml(cat)}</span>
+          </div>
+          <span style="font-size:15px;font-weight:700;color:var(--red)">−${fmt(valor)}</span>
+        </div>
+      `).join('');
+    }
+
+  } catch(e) {
+    console.error('Erro relatorios:', e);
+    mostrarToast('Erro ao carregar relatório');
+  }
+}
+
+async function exportarRelatorioPDF() {
+  const nome = perfilAtual?.nome || 'Representante';
+  mostrarToast('Gerando PDF...');
+
+  // Coletar dados já carregados na tela
+  const comissao = document.getElementById('rel-comissao-total').textContent;
+  const gastos = document.getElementById('rel-gastos-total').textContent;
+  const liquido = document.getElementById('rel-liquido-total').textContent;
+  const pedidos = document.getElementById('rel-pedidos-total').textContent;
+  const ano = anoRelatorio;
+
+  const mesesHtml = document.getElementById('rel-por-mes').innerHTML;
+  const marcasHtml = document.getElementById('rel-por-marca').innerHTML;
+  const catHtml = document.getElementById('rel-por-categoria').innerHTML;
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; color: #111; padding: 32px; max-width: 800px; margin: 0 auto; }
+  h1 { color: #1a56db; font-size: 24px; margin-bottom: 4px; }
+  h2 { font-size: 16px; color: #4b5563; margin: 24px 0 12px; border-bottom: 2px solid #1a56db; padding-bottom: 4px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .resumo { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .card { background: #f3f4f6; border-radius: 8px; padding: 14px; }
+  .card.verde { background: #dcfce7; }
+  .card.azul { background: #e8f0fe; }
+  .card.vermelho { background: #fee2e2; }
+  .card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+  .card-valor { font-size: 20px; font-weight: 800; }
+  .verde .card-valor { color: #16a34a; }
+  .azul .card-valor { color: #1a56db; }
+  .vermelho .card-valor { color: #dc2626; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  th { background: #1a56db; color: white; padding: 8px 10px; text-align: left; font-size: 12px; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .footer { margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>RepGo — Relatório ${ano}</h1>
+    <div style="font-size:14px;color:#6b7280">${nome}</div>
+    <div style="font-size:12px;color:#9ca3af">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+  </div>
+</div>
+
+<div class="resumo">
+  <div class="card azul">
+    <div class="card-label">Comissão bruta</div>
+    <div class="card-valor">${comissao}</div>
+  </div>
+  <div class="card vermelho">
+    <div class="card-label">Total gastos</div>
+    <div class="card-valor">${gastos}</div>
+  </div>
+  <div class="card verde">
+    <div class="card-label">Comissão líquida</div>
+    <div class="card-valor">${liquido}</div>
+  </div>
+</div>
+<div style="font-size:13px;color:#6b7280;margin-bottom:24px">${pedidos}</div>
+
+<h2>Por mês</h2>
+<table>
+  <tr><th>Mês</th><th>Pedidos</th><th>Comissão</th><th>Gastos</th><th>Líquido</th></tr>
+  ${Array.from({length:12}, (_,i) => {
+    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return `<tr><td>${meses[i]}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+  }).join('')}
+</table>
+
+<h2>Por marca</h2>
+<div id="marcas-placeholder">${marcasHtml}</div>
+
+<h2>Gastos por categoria</h2>
+<div id="cat-placeholder">${catHtml}</div>
+
+<div class="footer">RepGo · repgo-sistema.vercel.app · Documento gerado automaticamente</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `RepGo_Relatorio_${ano}_${nome.replace(/ /g,'_')}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  mostrarToast('Relatório baixado! Abra no navegador e use Ctrl+P para imprimir como PDF.');
 }
 
 let _scrollY = 0;
