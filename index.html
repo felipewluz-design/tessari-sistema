@@ -1488,13 +1488,20 @@ async function carregarDashboard() {
 async function carregarClientes() {
   const uid = modoSuporte ? suporteUid : usuarioAtual.id;
   try {
-    let data;
+    let data, pedidos;
     if (modoSuporte) {
-      data = await sbRpc('rg_suporte_clientes', { p_user_id: uid });
+      [data, pedidos] = await Promise.all([
+        sbRpc('rg_suporte_clientes', { p_user_id: uid }),
+        sbRpc('rg_suporte_pedidos', { p_user_id: uid })
+      ]);
     } else {
-      data = await sb(`/rest/v1/rg_clientes?user_id=eq.${uid}&select=*&order=nome.asc`);
+      [data, pedidos] = await Promise.all([
+        sb(`/rest/v1/rg_clientes?user_id=eq.${uid}&select=*&order=nome.asc`),
+        sb(`/rest/v1/rg_pedidos?user_id=eq.${uid}&select=cliente_id,created_at`)
+      ]);
     }
     todosClientes = data || [];
+    todosPedidos = pedidos || [];
     renderizarClientes(todosClientes);
   } catch(e) {
     console.error('Erro clientes:', e);
@@ -1526,9 +1533,13 @@ function renderizarClientes(lista) {
       <div class="cidade-label">📍 ${escHtml(cidade)} <span style="color:var(--gray-300)">•</span> ${clientes.length}</div>
       ${clientes.map(c => {
         const inicial = (c.nome || '?').charAt(0).toUpperCase();
-        const dias = c.dias_sem_pedido || 0;
+        const ultimoPedido = todosPedidos.filter(p => p.cliente_id === c.id)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        const dias = ultimoPedido
+          ? Math.floor((new Date() - new Date(ultimoPedido.created_at)) / 86400000)
+          : 999;
         const badgeClass = dias >= 60 ? 'critico' : dias >= 30 ? 'aviso' : 'ok';
-        const badgeTexto = dias === 0 ? 'novo' : dias + 'd';
+        const badgeTexto = dias >= 999 ? 'novo' : dias + 'd';
         return `<div class="cliente-item" onclick="editarCliente('${c.id}')">
           <div class="cliente-avatar">${escHtml(inicial)}</div>
           <div class="cliente-info">
@@ -1668,7 +1679,7 @@ async function carregarPedidos() {
     if (modoSuporte) {
       data = await sbRpc('rg_suporte_pedidos', { p_user_id: uid });
     } else {
-      data = await sb(`/rest/v1/rg_pedidos?user_id=eq.${uid}&select=*,clientes(nome)&order=created_at.desc`);
+      data = await sb(`/rest/v1/rg_pedidos?user_id=eq.${uid}&select=*,rg_clientes(nome)&order=created_at.desc`);
     }
     todosPedidos = data || [];
 
@@ -1683,7 +1694,7 @@ async function carregarPedidos() {
     }
 
     el.innerHTML = todosPedidos.map(p => {
-      const nomeCliente = p.clientes?.nome || p.cliente_nome || 'Cliente';
+      const nomeCliente = p.rg_clientes?.nome || p.cliente_nome || 'Cliente';
       const dataStr = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
       return `<div class="pedido-item">
         <div class="pedido-header">
