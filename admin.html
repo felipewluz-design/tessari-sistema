@@ -527,10 +527,10 @@ async function carregarReps() {
   mostrarLoading('Carregando reps...');
   try {
     // Buscar todos os perfis
-    const perfis = await sbRpc('admin_listar_reps') || [];
+    const perfis = await sbRpc('rg_admin_reps') || [];
 
     // Buscar planos
-    const planos = await sbRpc('admin_listar_planos') || [];
+    const planos = await sbRpc('rg_admin_planos') || [];
 
     // Combinar
     todosReps = perfis.map(p => {
@@ -544,7 +544,7 @@ async function carregarReps() {
     console.error('Erro ao carregar reps:', e);
     // Tentar fallback direto
     try {
-      const perfis = await sb('/rest/v1/perfil_rep?select=*&order=created_at.desc');
+      const perfis = await sb('/rest/v1/rg_perfil?select=*&order=created_at.desc');
       todosReps = (perfis || []).map(p => ({ ...p, plano_status: 'trial' }));
       atualizarStats();
       renderizarReps(todosReps);
@@ -674,7 +674,7 @@ async function carregarPedidosRep() {
   el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400)">Carregando...</div>';
 
   try {
-    const pedidos = await sbRpc('suporte_pedidos', { p_user_id: uid }) || [];
+    const pedidos = await sbRpc('rg_suporte_pedidos', { p_user_id: uid }) || [];
 
     if (pedidos.length === 0) {
       el.innerHTML = '<div class="vazio"><div class="vazio-icone">📋</div><div class="vazio-texto">Nenhum pedido</div></div>';
@@ -710,7 +710,7 @@ async function salvarPlano() {
 
   mostrarLoading('Salvando plano...');
   try {
-    await sb('/rest/v1/rep_planos', {
+    await sb('/rest/v1/rg_planos', {
       method: 'POST',
       body: JSON.stringify({ user_id: uid, status, vencimento: vencimento || null, observacoes_admin: obs }),
       headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }

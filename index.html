@@ -1257,7 +1257,7 @@ async function iniciarApp() {
 async function carregarPerfil() {
   try {
     const uid = modoSuporte ? suporteUid : usuarioAtual.id;
-    const data = await sb(`/rest/v1/perfil_rep?user_id=eq.${uid}&select=*`);
+    const data = await sb(`/rest/v1/rg_perfil?user_id=eq.${uid}&select=*`);
     perfilAtual = data?.[0] || null;
   } catch(e) { perfilAtual = null; }
 }
@@ -1291,7 +1291,7 @@ async function salvarOnboarding() {
   if (!nome) { document.getElementById('onb-erro').textContent = 'Digite seu nome.'; return; }
   mostrarLoading('Salvando...');
   try {
-    await sb('/rest/v1/perfil_rep', {
+    await sb('/rest/v1/rg_perfil', {
       method: 'POST',
       body: JSON.stringify({ user_id: usuarioAtual.id, nome }),
       headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
@@ -1373,9 +1373,9 @@ async function carregarDashboard() {
     // Pedidos do mês
     let pedidos;
     if (modoSuporte) {
-      pedidos = await sbRpc('suporte_pedidos', { p_user_id: uid });
+      pedidos = await sbRpc('rg_suporte_pedidos', { p_user_id: uid });
     } else {
-      pedidos = await sb(`/rest/v1/pedidos?user_id=eq.${uid}&select=*`);
+      pedidos = await sb(`/rest/v1/rg_pedidos?user_id=eq.${uid}&select=*`);
     }
     pedidos = pedidos || [];
 
@@ -1390,9 +1390,9 @@ async function carregarDashboard() {
     // Gastos do mês
     let gastos;
     if (modoSuporte) {
-      gastos = await sbRpc('suporte_gastos', { p_user_id: uid });
+      gastos = await sbRpc('rg_suporte_gastos', { p_user_id: uid });
     } else {
-      gastos = await sb(`/rest/v1/gastos?user_id=eq.${uid}&select=*`);
+      gastos = await sb(`/rest/v1/rg_gastos?user_id=eq.${uid}&select=*`);
     }
     gastos = gastos || [];
 
@@ -1405,9 +1405,9 @@ async function carregarDashboard() {
     // Clientes
     let clientes;
     if (modoSuporte) {
-      clientes = await sbRpc('suporte_clientes', { p_user_id: uid });
+      clientes = await sbRpc('rg_suporte_clientes', { p_user_id: uid });
     } else {
-      clientes = await sb(`/rest/v1/clientes?user_id=eq.${uid}&select=*`);
+      clientes = await sb(`/rest/v1/rg_clientes?user_id=eq.${uid}&select=*`);
     }
     clientes = clientes || [];
 
@@ -1490,9 +1490,9 @@ async function carregarClientes() {
   try {
     let data;
     if (modoSuporte) {
-      data = await sbRpc('suporte_clientes', { p_user_id: uid });
+      data = await sbRpc('rg_suporte_clientes', { p_user_id: uid });
     } else {
-      data = await sb(`/rest/v1/clientes?user_id=eq.${uid}&select=*&order=nome.asc`);
+      data = await sb(`/rest/v1/rg_clientes?user_id=eq.${uid}&select=*&order=nome.asc`);
     }
     todosClientes = data || [];
     renderizarClientes(todosClientes);
@@ -1631,12 +1631,12 @@ async function salvarCliente() {
   try {
     let saved;
     if (id) {
-      saved = await sb(`/rest/v1/clientes?id=eq.${id}`, {
+      saved = await sb(`/rest/v1/rg_clientes?id=eq.${id}`, {
         method: 'PATCH',
         body: JSON.stringify(payload)
       });
     } else {
-      saved = await sb('/rest/v1/clientes', {
+      saved = await sb('/rest/v1/rg_clientes', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -1666,9 +1666,9 @@ async function carregarPedidos() {
   try {
     let data;
     if (modoSuporte) {
-      data = await sbRpc('suporte_pedidos', { p_user_id: uid });
+      data = await sbRpc('rg_suporte_pedidos', { p_user_id: uid });
     } else {
-      data = await sb(`/rest/v1/pedidos?user_id=eq.${uid}&select=*,clientes(nome)&order=created_at.desc`);
+      data = await sb(`/rest/v1/rg_pedidos?user_id=eq.${uid}&select=*,clientes(nome)&order=created_at.desc`);
     }
     todosPedidos = data || [];
 
@@ -1713,7 +1713,7 @@ function abrirNovoPedido() {
   // Carregar clientes se não carregado
   if (todosClientes.length === 0) {
     const uid = modoSuporte ? suporteUid : usuarioAtual.id;
-    sb(`/rest/v1/clientes?user_id=eq.${uid}&select=*&order=nome.asc`)
+    sb(`/rest/v1/rg_clientes?user_id=eq.${uid}&select=*&order=nome.asc`)
       .then(d => { todosClientes = d || []; }).catch(() => {});
   }
   resetNovoPedido();
@@ -1849,14 +1849,14 @@ async function salvarPedido() {
   try {
     // Se cliente não encontrado, criar
     if (!clienteId && clienteNome) {
-      const novoCliente = await sb('/rest/v1/clientes', {
+      const novoCliente = await sb('/rest/v1/rg_clientes', {
         method: 'POST',
         body: JSON.stringify({ user_id: uid, nome: clienteNome, cidade: 'Não informada' })
       });
       clienteId = Array.isArray(novoCliente) ? novoCliente[0]?.id : novoCliente?.id;
     }
 
-    await sb('/rest/v1/pedidos', {
+    await sb('/rest/v1/rg_pedidos', {
       method: 'POST',
       body: JSON.stringify({
         user_id: uid,
@@ -1887,9 +1887,9 @@ async function salvarPedido() {
 
 async function garantirMarca(nome, uid, comissaoPct) {
   try {
-    const marcas = await sb(`/rest/v1/marcas_rep?user_id=eq.${uid}&nome=eq.${encodeURIComponent(nome)}&select=*`);
+    const marcas = await sb(`/rest/v1/rg_marcas?user_id=eq.${uid}&nome=eq.${encodeURIComponent(nome)}&select=*`);
     if (!marcas || marcas.length === 0) {
-      await sb('/rest/v1/marcas_rep', {
+      await sb('/rest/v1/rg_marcas', {
         method: 'POST',
         body: JSON.stringify({ user_id: uid, nome, comissao_padrao: comissaoPct || null })
       });
@@ -1905,9 +1905,9 @@ async function carregarGastos() {
   try {
     let data;
     if (modoSuporte) {
-      data = await sbRpc('suporte_gastos', { p_user_id: uid });
+      data = await sbRpc('rg_suporte_gastos', { p_user_id: uid });
     } else {
-      data = await sb(`/rest/v1/gastos?user_id=eq.${uid}&select=*&order=data.desc`);
+      data = await sb(`/rest/v1/rg_gastos?user_id=eq.${uid}&select=*&order=data.desc`);
     }
     todosGastos = data || [];
     filtrarGastos(filtroPeriodo);
@@ -1999,7 +1999,7 @@ async function salvarGasto() {
 
   mostrarLoading('Salvando...');
   try {
-    await sb('/rest/v1/gastos', {
+    await sb('/rest/v1/rg_gastos', {
       method: 'POST',
       body: JSON.stringify({
         user_id: uid,
@@ -2024,7 +2024,7 @@ async function salvarGasto() {
 async function carregarMarcas() {
   const uid = modoSuporte ? suporteUid : usuarioAtual.id;
   try {
-    const data = await sb(`/rest/v1/marcas_rep?user_id=eq.${uid}&select=*&order=nome.asc`);
+    const data = await sb(`/rest/v1/rg_marcas?user_id=eq.${uid}&select=*&order=nome.asc`);
     todasMarcas = data || [];
 
     const el = document.getElementById('lista-marcas');
@@ -2069,7 +2069,7 @@ async function salvarMarca() {
 
   mostrarLoading('Salvando...');
   try {
-    await sb(`/rest/v1/marcas_rep?id=eq.${id}`, {
+    await sb(`/rest/v1/rg_marcas?id=eq.${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ comissao_padrao: comissao })
     });
@@ -2097,7 +2097,7 @@ async function salvarPerfil() {
   if (!nome) return;
   mostrarLoading('Salvando...');
   try {
-    await sb('/rest/v1/perfil_rep', {
+    await sb('/rest/v1/rg_perfil', {
       method: 'POST',
       body: JSON.stringify({
         user_id: usuarioAtual.id,
