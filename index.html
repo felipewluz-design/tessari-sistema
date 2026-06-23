@@ -766,8 +766,12 @@
     <!-- ===== CLIENTES ===== -->
     <div id="tela-clientes" class="tela">
       <div class="busca-container">
-        <span class="busca-icone">🔍</span>
+        <span class="busca-icone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
         <input type="text" class="busca-input" id="busca-cliente" placeholder="Buscar cliente..." oninput="filtrarClientes()">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="filtro-btn ativo" id="ord-cidade" onclick="setOrdemClientes('cidade')">📍 Por cidade</button>
+        <button class="filtro-btn" id="ord-dias" onclick="setOrdemClientes('dias')">⏱ Mais parados</button>
       </div>
       <div id="lista-clientes"></div>
       <button class="pedido-fab" onclick="abrirModalCliente()" title="Novo cliente">+</button>
@@ -1135,6 +1139,7 @@ let todosPedidos = [];
 let todosGastos = [];
 let todasMarcas = [];
 let filtroPeriodo = 'mes';
+let ordemClientes = 'cidade';
 
 // =============================================
 // SUPABASE CLIENT
@@ -1326,8 +1331,12 @@ function sairModoSuporte() {
 // NAVEGAÇÃO
 // =============================================
 let telaAtual = 'dashboard';
+let _navegando = false;
 
 function navegar(tela) {
+  if (_navegando) return;
+  _navegando = true;
+  setTimeout(() => { _navegando = false; }, 400);
   // Esconder todas as telas
   document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
 
@@ -1534,9 +1543,38 @@ function renderizarClientes(lista) {
     return;
   }
 
+  // Calcular dias para cada cliente
+  const listaComDias = lista.map(c => {
+    const ultimoPedido = todosPedidos.filter(p => p.cliente_id === c.id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const dias = ultimoPedido
+      ? Math.floor((new Date() - new Date(ultimoPedido.created_at)) / 86400000)
+      : 999;
+    return { ...c, dias };
+  });
+
+  if (ordemClientes === 'dias') {
+    // Ordenar por mais parado
+    listaComDias.sort((a, b) => b.dias - a.dias);
+    el.innerHTML = listaComDias.map(c => {
+      const inicial = (c.nome || '?').charAt(0).toUpperCase();
+      const badgeClass = c.dias >= 60 ? 'critico' : c.dias >= 30 ? 'aviso' : 'ok';
+      const badgeTexto = c.dias >= 999 ? 'novo' : c.dias + 'd';
+      return `<div class="cliente-item" onclick="editarCliente('${c.id}')">
+        <div class="cliente-avatar">${escHtml(inicial)}</div>
+        <div class="cliente-info">
+          <div class="cliente-nome">${escHtml(c.nome)}</div>
+          <div class="cliente-sub">${c.cidade ? escHtml(c.cidade) : 'Sem cidade'}</div>
+        </div>
+        <div class="dias-badge ${badgeClass}">${badgeTexto}</div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
   // Agrupar por cidade
   const cidades = {};
-  lista.forEach(c => {
+  listaComDias.forEach(c => {
     const cidade = c.cidade || 'Sem cidade';
     if (!cidades[cidade]) cidades[cidade] = [];
     cidades[cidade].push(c);
@@ -1547,13 +1585,8 @@ function renderizarClientes(lista) {
       <div class="cidade-label">📍 ${escHtml(cidade)} <span style="color:var(--gray-300)">•</span> ${clientes.length}</div>
       ${clientes.map(c => {
         const inicial = (c.nome || '?').charAt(0).toUpperCase();
-        const ultimoPedido = todosPedidos.filter(p => p.cliente_id === c.id)
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-        const dias = ultimoPedido
-          ? Math.floor((new Date() - new Date(ultimoPedido.created_at)) / 86400000)
-          : 999;
-        const badgeClass = dias >= 60 ? 'critico' : dias >= 30 ? 'aviso' : 'ok';
-        const badgeTexto = dias >= 999 ? 'novo' : dias + 'd';
+        const badgeClass = c.dias >= 60 ? 'critico' : c.dias >= 30 ? 'aviso' : 'ok';
+        const badgeTexto = c.dias >= 999 ? 'novo' : c.dias + 'd';
         return `<div class="cliente-item" onclick="editarCliente('${c.id}')">
           <div class="cliente-avatar">${escHtml(inicial)}</div>
           <div class="cliente-info">
@@ -1567,9 +1600,16 @@ function renderizarClientes(lista) {
   `).join('');
 }
 
+function setOrdemClientes(ordem) {
+  ordemClientes = ordem;
+  document.getElementById('ord-cidade').classList.toggle('ativo', ordem === 'cidade');
+  document.getElementById('ord-dias').classList.toggle('ativo', ordem === 'dias');
+  filtrarClientes();
+}
+
 function filtrarClientes() {
   const busca = document.getElementById('busca-cliente').value.toLowerCase();
-  const filtrado = todosClientes.filter(c =>
+  let filtrado = todosClientes.filter(c =>
     c.nome?.toLowerCase().includes(busca) ||
     c.cidade?.toLowerCase().includes(busca) ||
     c.cnpj?.includes(busca)
@@ -2183,14 +2223,22 @@ function esconderLoading() {
   document.getElementById('loading').classList.remove('visivel');
 }
 
+let _scrollY = 0;
+
 function abrirModal(id) {
+  _scrollY = window.scrollY;
   document.getElementById(id).classList.add('visivel');
-  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${_scrollY}px`;
+  document.body.style.width = '100%';
 }
 
 function fecharModal(id) {
   document.getElementById(id).classList.remove('visivel');
-  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  window.scrollTo(0, _scrollY);
 }
 
 // Fechar modal ao clicar fora
@@ -2198,7 +2246,10 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
     if (e.target === overlay) {
       overlay.classList.remove('visivel');
-      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, _scrollY);
     }
   });
 });
