@@ -447,7 +447,7 @@ var SB_KEY = "sb_publishable_rJm-XhVdRxY0bCfd5PqERg_QDMzQMIL";
 
 // ===== STATE =====
 var db, clientes=[], pedidos=[], gastos=[], redes=[];
-var itens=[], condAtual="30DD", marcaAtual="disney", catAtual="combustivel", telaAnterior="home", editandoClienteId=null, currentUserId=null, clienteAtualId=null, repNome="";
+var itens=[], condAtual="30DD", marcaAtual="", catAtual="combustivel", telaAnterior="home", editandoClienteId=null, currentUserId=null, clienteAtualId=null, repNome="", modoSuporte=false;
 
 // ===== PRECOS =====
 var PRECOS={IMPULSE:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},SPARK:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},FLOW:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},BALLERINA:{g:[20,27],p:{"30DD":61.49,"60DD":62.69,"90DD":63.84,"30/60/90":61.49,"30/60/90/120":61.49,"60/90/120":62.69}},PRIME:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},ICON:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},VENTURE:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},FANTASY:{g:[20,27],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},TWIST:{g:[20,27],p:{"30DD":57.95,"60DD":59.08,"90DD":60.17,"30/60/90":57.95,"30/60/90/120":57.95,"60/90/120":59.08}},SHINE:{g:[20,29],p:{"30DD":71.34,"60DD":72.73,"90DD":74.07,"30/60/90":71.34,"30/60/90/120":71.34,"60/90/120":72.73}},LOOPING:{g:[24,33],p:{"30DD":66.87,"60DD":68.18,"90DD":69.43,"30/60/90":66.87,"30/60/90/120":66.87,"60/90/120":68.18}},URBAN:{g:[24,33],p:{"30DD":66.87,"60DD":68.18,"90DD":69.43,"30/60/90":66.87,"30/60/90/120":66.87,"60/90/120":68.18}},"FLASH LIGHT":{g:[24,33],p:{"30DD":75.79,"60DD":77.27,"90DD":78.70,"30/60/90":75.79,"30/60/90/120":75.79,"60/90/120":77.27}},LUMINE:{g:[24,33],p:{"30DD":75.79,"60DD":77.27,"90DD":78.70,"30/60/90":75.79,"30/60/90/120":75.79,"60/90/120":77.27}},CLASSIC:{g:[28,35],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},PUMP:{g:[28,37],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}},JUMP:{g:[28,35],p:{"30DD":66.87,"60DD":68.18,"90DD":69.43,"30/60/90":66.87,"30/60/90/120":66.87,"60/90/120":68.18}},SPEED:{g:[28,35],p:{"30DD":115.91,"60DD":118.17,"90DD":120.35,"30/60/90":115.91,"30/60/90/120":115.91,"60/90/120":118.17}},CANDY:{g:[20,27],p:{"30DD":52.30,"60DD":53.32,"90DD":54.31,"30/60/90":52.30,"30/60/90/120":52.30,"60/90/120":53.32}},DREAM:{g:[28,34],p:{"30DD":56.67,"60DD":57.77,"90DD":58.84,"30/60/90":56.67,"30/60/90/120":56.67,"60/90/120":57.77}},DIAMOND:{g:[28,34],p:{"30DD":62.19,"60DD":63.41,"90DD":64.58,"30/60/90":62.19,"30/60/90/120":62.19,"60/90/120":63.41}},VIBE:{g:[28,34],p:{"30DD":62.42,"60DD":63.63,"90DD":64.81,"30/60/90":62.42,"30/60/90/120":62.42,"60/90/120":63.63}}};
@@ -582,6 +582,7 @@ async function entrarNoApp(user){
   var urlParams=new URLSearchParams(window.location.search);
   var supportUid=urlParams.get("support_uid");
   var supportName=urlParams.get("support_name");
+  modoSuporte=!!supportUid;
   currentUserId=supportUid||user.id;
   if(supportUid){
     var banner=document.createElement("div");
@@ -727,17 +728,23 @@ async function carregarTudo(){
 
 // ===== SUPABASE =====
 async function carregarClientes(){
-  var r=await db.from("clientes").select("*").eq("user_id",currentUserId).order("nome");
-  if(r.data) clientes=r.data.map(function(c){return{id:c.id,nome:c.nome,cnpj:c.cnpj||"",endereco:c.endereco||"",cidade:c.cidade||"",cep:c.cep||"",tel:c.telefone||"",email:c.email||"",marca:c.marca||"disney",ciclo:c.ciclo_dias||90,obs:c.observacoes||"",últimoPedido:null,últimoPedidoValor:null};});
+  var r=modoSuporte
+    ? await db.rpc("suporte_clientes",{p_user_id:currentUserId})
+    : await db.from("clientes").select("*").eq("user_id",currentUserId).order("nome");
+  if(r.data) clientes=r.data.map(function(c){return{id:c.id,nome:c.nome,cnpj:c.cnpj||"",endereco:c.endereco||"",cidade:c.cidade||"",cep:c.cep||"",tel:c.telefone||"",email:c.email||"",marca:c.marca||"",ciclo:c.ciclo_dias||90,obs:c.observacoes||"",últimoPedido:null,últimoPedidoValor:null};});
 }
 
 async function carregarPedidos(){
-  var r=await db.from("pedidos").select("*").eq("user_id",currentUserId).order("data_pedido",{ascending:false});
+  var r=modoSuporte
+    ? await db.rpc("suporte_pedidos",{p_user_id:currentUserId})
+    : await db.from("pedidos").select("*").eq("user_id",currentUserId).order("data_pedido",{ascending:false});
   if(r.data) pedidos=r.data.map(function(p){return{id:p.id,clienteId:p.cliente_id,marca:p.marca,númeroPedido:p.número_pedido,data:p.data_pedido,cond:p.condicao_pagamento,total:parseFloat(p.valor_total)||0,pares:p.total_pares||0,percComissão:parseFloat(p.percentual_comissao)||10,valorComissão:parseFloat(p.valor_comissao)||0,obs:p.observacoes||""};});
 }
 
 async function carregarGastos(){
-  var r=await db.from("gastos").select("*").eq("user_id",currentUserId).order("data_gasto",{ascending:false}).order("created_at",{ascending:false});
+  var r=modoSuporte
+    ? await db.rpc("suporte_gastos",{p_user_id:currentUserId})
+    : await db.from("gastos").select("*").eq("user_id",currentUserId).order("data_gasto",{ascending:false}).order("created_at",{ascending:false});
   if(r.data) gastos=r.data.map(function(g){return{id:g.id,cat:g.categoria,ob:g.descricao||"",v:parseFloat(g.valor),data:g.data_gasto,h:new Date(g.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};});
 }
 
@@ -785,8 +792,14 @@ async function deletarPedidoDB(id){
 async function atualizarDashboard(){
   var periodo=document.getElementById("periodo-dash");
   var isMes=!periodo||periodo.value==="mes";
-  var pedQ=db.from("pedidos").select("marca,valor_total,valor_comissao").eq("user_id",currentUserId);
-  var gasQ=db.from("gastos").select("valor").eq("user_id",currentUserId);
+  var pedQ,gasQ;
+  if(modoSuporte){
+    pedQ=db.rpc("suporte_pedidos",{p_user_id:currentUserId}).select("marca,valor_total,valor_comissao");
+    gasQ=db.rpc("suporte_gastos",{p_user_id:currentUserId}).select("valor");
+  } else {
+    pedQ=db.from("pedidos").select("marca,valor_total,valor_comissao").eq("user_id",currentUserId);
+    gasQ=db.from("gastos").select("valor").eq("user_id",currentUserId);
+  }
   if(isMes){
     var agora=new Date(),mes=agora.getMonth()+1,ano=agora.getFullYear();
     var últimoDia=new Date(ano,agora.getMonth()+1,0).getDate();
@@ -1548,7 +1561,7 @@ async function salvarMarca(){
   }
   btn.textContent="Salvar";btn.disabled=false;
   // Reload marcas
-  var rm=await db.from("marcas_rep").select("*").eq("user_id",user.id);
+  var rm=await db.from("marcas_rep").select("*").eq("user_id",currentUserId);
   marcasRep=rm.data||[];
   renderMarcasBtns();
   renderListaMarcas();
@@ -1561,8 +1574,7 @@ async function salvarMarca(){
 async function deletarMarca(id){
   if(!confirm("Excluir esta marca?"))return;
   await db.from("marcas_rep").delete().eq("id",id);
-  var user=(await db.auth.getUser()).data.user;
-  var rm=await db.from("marcas_rep").select("*").eq("user_id",user.id);
+  var rm=await db.from("marcas_rep").select("*").eq("user_id",currentUserId);
   marcasRep=rm.data||[];
   renderMarcasBtns();
   renderListaMarcas();
