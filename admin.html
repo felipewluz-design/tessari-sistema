@@ -4,1253 +4,815 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RepGo Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+  :root {
+    --blue: #1a56db;
+    --blue-dark: #1341a8;
+    --blue-light: #e8f0fe;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --yellow: #d97706;
+    --yellow-light: #fef3c7;
+    --purple: #7c3aed;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.1);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07);
+  }
 
-:root {
-  --navy: #0A2463;
-  --navy-deep: #061840;
-  --navy-mid: #0d2e78;
-  --green: #1D9E75;
-  --red: #C8102E;
-  --amber: #F59E0B;
-  --blue-light: #3B82F6;
-  --bg: #F0F2F8;
-  --surface: #FFFFFF;
-  --surface2: #F7F8FC;
-  --border: #E2E6F0;
-  --text: #0D1B3E;
-  --text2: #5C6A8A;
-  --text3: #9BA3BD;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'DM Sans', sans-serif;
-  --radius: 12px;
-  --shadow: 0 2px 12px rgba(10,36,99,0.08);
-  --shadow-lg: 0 8px 32px rgba(10,36,99,0.14);
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    min-height: 100vh;
+  }
 
-body {
-  font-family: var(--sans);
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-}
+  /* ---- AUTH ---- */
+  #tela-auth {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #111827 0%, #1f2937 60%, var(--purple) 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
 
-/* ====== LOGIN ====== */
-#login-screen {
-  min-height: 100vh;
-  background: var(--navy-deep);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
-}
-#login-screen::before {
-  content: '';
-  position: absolute;
-  width: 600px; height: 600px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.05);
-  top: -200px; right: -200px;
-}
-#login-screen::after {
-  content: '';
-  position: absolute;
-  width: 400px; height: 400px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.04);
-  bottom: -150px; left: -100px;
-}
-.login-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px;
-  padding: 40px 36px;
-  width: 100%;
-  max-width: 400px;
-  backdrop-filter: blur(20px);
-  position: relative;
-  z-index: 1;
-}
-.login-logo {
-  text-align: center;
-  margin-bottom: 32px;
-}
-.login-logo .brand {
-  font-size: 42px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -1px;
-  line-height: 1;
-}
-.login-logo .brand span {
-  color: var(--green);
-}
-.login-logo .badge {
-  display: inline-block;
-  background: rgba(29,158,117,0.2);
-  border: 1px solid rgba(29,158,117,0.4);
-  color: var(--green);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-top: 8px;
-  font-family: var(--mono);
-}
-.login-lbl {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: rgba(255,255,255,0.5);
-  margin-bottom: 8px;
-  margin-top: 18px;
-  font-family: var(--mono);
-}
-.login-inp {
-  width: 100%;
-  padding: 14px 16px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 15px;
-  font-family: var(--sans);
-  outline: none;
-  transition: border-color 0.2s;
-}
-.login-inp:focus { border-color: rgba(29,158,117,0.6); background: rgba(255,255,255,0.1); }
-.login-inp::placeholder { color: rgba(255,255,255,0.3); }
-.login-btn {
-  width: 100%;
-  margin-top: 24px;
-  padding: 16px;
-  background: var(--green);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: var(--sans);
-  transition: opacity 0.2s, transform 0.1s;
-  letter-spacing: 0.3px;
-}
-.login-btn:hover { opacity: 0.9; }
-.login-btn:active { transform: scale(0.98); }
-.login-err {
-  margin-top: 14px;
-  padding: 10px 14px;
-  background: rgba(200,16,46,0.15);
-  border: 1px solid rgba(200,16,46,0.3);
-  border-radius: 8px;
-  font-size: 13px;
-  color: #ff7a8a;
-  display: none;
-}
+  .auth-logo {
+    width: 72px; height: 72px;
+    background: white; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 800; color: var(--blue);
+    margin-bottom: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    position: relative;
+  }
 
-/* ====== LAYOUT ====== */
-#admin-screen { display: none; min-height: 100vh; }
+  .auth-logo::after {
+    content: '';
+    width: 14px; height: 14px;
+    background: #22c55e; border-radius: 50%;
+    position: absolute; bottom: 8px; right: 8px;
+    border: 2px solid white;
+  }
 
-.topbar {
-  background: var(--navy-deep);
-  padding: 0 32px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.topbar-brand {
-  font-size: 20px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.5px;
-}
-.topbar-brand span { color: var(--green); }
-.topbar-badge {
-  font-family: var(--mono);
-  font-size: 10px;
-  background: rgba(29,158,117,0.2);
-  border: 1px solid rgba(29,158,117,0.35);
-  color: var(--green);
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-left: 10px;
-}
-.topbar-right { display: flex; align-items: center; gap: 16px; }
-.topbar-user {
-  font-size: 13px;
-  color: rgba(255,255,255,0.5);
-  font-family: var(--mono);
-}
-.topbar-logout {
-  background: rgba(200,16,46,0.15);
-  border: 1px solid rgba(200,16,46,0.25);
-  color: #ff7a8a;
-  padding: 7px 16px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--sans);
-  transition: background 0.2s;
-}
-.topbar-logout:hover { background: rgba(200,16,46,0.25); }
+  .auth-brand { color: white; font-size: 24px; font-weight: 700; }
+  .auth-badge { background: var(--purple); color: white; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; letter-spacing: .5px; margin: 6px 0 28px; text-transform: uppercase; }
 
-.main { padding: 32px; max-width: 1300px; margin: 0 auto; }
+  .auth-card {
+    background: white; border-radius: 20px; padding: 28px 24px;
+    width: 100%; max-width: 360px;
+    box-shadow: 0 24px 48px rgba(0,0,0,.3);
+  }
 
-/* ====== STATS ====== */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 28px;
-}
-.stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 22px;
-  position: relative;
-  overflow: hidden;
-}
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 3px; height: 100%;
-  border-radius: 3px 0 0 3px;
-}
-.stat-card.navy::before { background: var(--navy); }
-.stat-card.green::before { background: var(--green); }
-.stat-card.red::before { background: var(--red); }
-.stat-card.amber::before { background: var(--amber); }
-.stat-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text2);
-  font-family: var(--mono);
-  margin-bottom: 8px;
-}
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-}
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; }
 
-/* ====== TOOLBAR ====== */
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.toolbar h2 {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text);
-  flex: 1;
-}
-.search-box {
-  position: relative;
-}
-.search-box input {
-  padding: 10px 14px 10px 38px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: var(--sans);
-  color: var(--text);
-  background: var(--surface);
-  outline: none;
-  width: 240px;
-  transition: border-color 0.2s;
-}
-.search-box input:focus { border-color: var(--navy); }
-.search-box .icon {
-  position: absolute;
-  left: 12px; top: 50%;
-  transform: translateY(-50%);
-  color: var(--text3);
-  font-size: 14px;
-  pointer-events: none;
-}
-.filter-tabs { display: flex; gap: 6px; }
-.ftab {
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  background: var(--surface);
-  color: var(--text2);
-  font-family: var(--sans);
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.ftab:hover { border-color: var(--navy); color: var(--navy); }
-.ftab.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-.reload-btn {
-  padding: 9px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px;
-  color: var(--text2);
-  cursor: pointer;
-  font-family: var(--sans);
-  font-weight: 500;
-  transition: all 0.15s;
-}
-.reload-btn:hover { border-color: var(--navy); color: var(--navy); }
+  input[type=text], input[type=email], input[type=password], input[type=number], input[type=date], select, textarea {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+    font-size: 15px; color: var(--gray-900); background: white;
+    outline: none; transition: border-color .2s;
+  }
 
-/* ====== TABLE ====== */
-.table-wrap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-table { width: 100%; border-collapse: collapse; }
-thead th {
-  padding: 13px 16px;
-  text-align: left;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  color: var(--text2);
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border);
-  font-family: var(--mono);
-  white-space: nowrap;
-}
-tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: var(--surface2); }
-tbody td { padding: 13px 16px; font-size: 13px; vertical-align: middle; }
-.rep-name { font-weight: 600; color: var(--text); font-size: 14px; }
-.rep-email { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
-.rep-tel { font-size: 12px; color: var(--text2); font-family: var(--mono); }
-.date-text { font-family: var(--mono); font-size: 12px; color: var(--text2); }
-.date-text.recent { color: var(--green); font-weight: 600; }
-.date-text.old { color: var(--amber); }
-.date-text.never { color: var(--text3); }
+  input:focus, select:focus { border-color: var(--blue); }
+  .campo { margin-bottom: 16px; }
 
-/* Status badges */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  font-family: var(--mono);
-  cursor: pointer;
-  transition: opacity 0.2s;
-  white-space: nowrap;
-}
-.status-badge:hover { opacity: 0.8; }
-.status-badge::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.badge-ativo { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
-.badge-ativo::before { background: var(--green); }
-.badge-inadimplente { background: #FFFBEB; color: #92400E; border: 1px solid #FCD34D; }
-.badge-inadimplente::before { background: var(--amber); }
-.badge-cancelado { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
-.badge-cancelado::before { background: var(--red); }
-.badge-trial { background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE; }
-.badge-trial::before { background: #6366F1; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 18px; border: none; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all .15s; text-decoration: none; white-space: nowrap;
+  }
 
-/* Expiry */
-.expiry-date { font-family: var(--mono); font-size: 12px; }
-.expiry-ok { color: var(--green); }
-.expiry-soon { color: var(--amber); font-weight: 600; }
-.expiry-expired { color: var(--red); font-weight: 600; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--blue); color: white; width: 100%; padding: 12px; font-size: 15px; }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-secondary { background: var(--gray-100); color: var(--gray-700); }
+  .btn-secondary:hover { background: var(--gray-200); }
+  .btn-ghost { background: transparent; color: var(--blue); }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-purple { background: var(--purple); color: white; }
+  .btn-sm { padding: 7px 12px; font-size: 13px; border-radius: 6px; }
+  .btn-icon { width: 36px; height: 36px; padding: 0; border-radius: 8px; font-size: 16px; }
 
-/* Action buttons */
-.action-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.btn-action {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid;
-  font-family: var(--sans);
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.btn-impersonate {
-  background: #EEF2FF;
-  color: #3730A3;
-  border-color: #C7D2FE;
-}
-.btn-impersonate:hover { background: #3730A3; color: #fff; }
-.btn-edit-plan {
-  background: var(--surface2);
-  color: var(--text2);
-  border-color: var(--border);
-}
-.btn-edit-plan:hover { border-color: var(--navy); color: var(--navy); }
+  .erro-msg { color: var(--red); font-size: 13px; margin-top: 8px; text-align: center; }
 
-/* ====== MODAL ====== */
-.modal-bg {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 500;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  backdrop-filter: blur(4px);
-}
-.modal-bg.on { display: flex; }
-.modal-box {
-  background: var(--surface);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-.modal-hd {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.modal-hd h3 { font-size: 16px; font-weight: 700; }
-.modal-hd p { font-size: 12px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
-.modal-cls {
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-  color: var(--text2);
-  line-height: 1;
-  width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 6px;
-  transition: background 0.15s;
-}
-.modal-cls:hover { background: var(--surface2); }
-.modal-body { padding: 24px; }
-.field-lbl {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text2);
-  margin-bottom: 7px;
-  margin-top: 16px;
-  font-family: var(--mono);
-}
-.field-lbl:first-child { margin-top: 0; }
-.field-inp, .field-sel {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: var(--sans);
-  color: var(--text);
-  background: var(--surface);
-  outline: none;
-  transition: border-color 0.2s;
-}
-.field-inp:focus, .field-sel:focus { border-color: var(--navy); }
-.field-sel { cursor: pointer; }
-.modal-ft { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
-.btn-cancel {
-  padding: 11px 20px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--sans);
-  color: var(--text2);
-  transition: all 0.15s;
-}
-.btn-cancel:hover { border-color: var(--navy); color: var(--navy); }
-.btn-save {
-  padding: 11px 24px;
-  background: var(--navy);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: var(--sans);
-  transition: opacity 0.2s;
-}
-.btn-save:hover { opacity: 0.88; }
-.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* ---- ADMIN SHELL ---- */
+  #admin-app { display: none; min-height: 100vh; flex-direction: column; }
 
-/* Impersonate modal */
-.imp-card {
-  background: #EEF2FF;
-  border: 1px solid #C7D2FE;
-  border-radius: 10px;
-  padding: 16px 18px;
-  margin-bottom: 16px;
-}
-.imp-card .name { font-size: 15px; font-weight: 700; color: #3730A3; }
-.imp-card .email { font-size: 12px; color: #4338CA; font-family: var(--mono); margin-top: 3px; }
-.imp-warn {
-  background: #FFFBEB;
-  border: 1px solid #FCD34D;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: #92400E;
-  margin-bottom: 16px;
-}
-.btn-enter {
-  width: 100%;
-  padding: 14px;
-  background: #3730A3;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: var(--sans);
-  transition: opacity 0.2s;
-}
-.btn-enter:hover { opacity: 0.88; }
+  .admin-topbar {
+    background: #111827; color: white;
+    padding: 0 24px; height: 60px;
+    display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+  }
 
-/* Toast */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--sans);
-  z-index: 9999;
-  transform: translateY(80px);
-  opacity: 0;
-  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  box-shadow: var(--shadow-lg);
-}
-.toast.on { transform: translateY(0); opacity: 1; }
-.toast.success { background: var(--green); color: #fff; }
-.toast.error { background: var(--red); color: #fff; }
+  .admin-logo-sm {
+    width: 36px; height: 36px; background: white; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; color: var(--blue); font-size: 16px;
+    position: relative; flex-shrink: 0;
+  }
 
-/* Empty state */
-.empty { padding: 48px; text-align: center; color: var(--text3); font-size: 14px; }
-.empty .ico { font-size: 40px; margin-bottom: 12px; }
+  .admin-logo-sm::after {
+    content: ''; width: 10px; height: 10px;
+    background: #22c55e; border-radius: 50%;
+    position: absolute; bottom: 4px; right: 4px;
+    border: 1.5px solid white;
+  }
 
-/* Loading */
-.loading-row td { padding: 32px; text-align: center; color: var(--text2); font-size: 13px; }
+  .admin-topbar-title { font-weight: 700; font-size: 16px; flex: 1; }
+  .admin-topbar-badge { background: var(--purple); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
 
-/* Impersonation banner */
-#imp-banner {
-  display: none;
-  background: #3730A3;
-  color: #fff;
-  padding: 10px 32px;
-  font-size: 13px;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--mono);
-}
-#imp-banner.on { display: flex; }
-#imp-banner button {
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: #fff;
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  font-family: var(--sans);
-  font-weight: 600;
-}
-#imp-banner button:hover { background: rgba(255,255,255,0.3); }
+  /* ---- STATS BAR ---- */
+  .stats-bar {
+    background: white; border-bottom: 1px solid var(--gray-200);
+    padding: 16px 24px;
+    display: flex; gap: 24px; overflow-x: auto;
+  }
 
-@media (max-width: 1024px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 700px) {
-  .main { padding: 16px; }
-  .topbar { padding: 0 16px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .toolbar { gap: 8px; }
-  .search-box input { width: 180px; }
-  table { font-size: 12px; }
-  thead th, tbody td { padding: 10px 12px; }
-}
+  .stat-item { flex-shrink: 0; text-align: center; }
+  .stat-valor { font-size: 24px; font-weight: 800; color: var(--blue); }
+  .stat-label { font-size: 12px; color: var(--gray-500); font-weight: 500; }
 
-/* ====== MODAL RESUMO ====== */
-.resumo-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.resumo-stat {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
-  text-align: center;
-}
-.resumo-stat .ico { font-size: 22px; margin-bottom: 6px; }
-.resumo-stat .val { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
-.resumo-stat .lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-top: 4px; font-family: var(--mono); }
-.resumo-loading { text-align: center; padding: 20px; color: var(--text2); font-size: 13px; }
-.ultima-acao-box {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 16px;
-}
-.ultima-acao-box .titulo { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); font-family: var(--mono); margin-bottom: 10px; }
-.acao-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-.acao-item:last-child { border-bottom: none; padding-bottom: 0; }
-.acao-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--navy); flex-shrink: 0; }
-.acao-desc { font-size: 13px; color: var(--text); flex: 1; }
-.acao-data { font-size: 11px; color: var(--text3); font-family: var(--mono); white-space: nowrap; }
-.rep-name-link { cursor: pointer; }
-.rep-name-link:hover { text-decoration: underline; color: var(--navy); }
+  /* ---- MAIN ---- */
+  .admin-main { padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+  /* ---- FILTROS ---- */
+  .admin-filtros {
+    display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+
+  .filtro-status {
+    padding: 8px 16px; border-radius: 20px; border: 1.5px solid var(--gray-200);
+    background: white; font-size: 13px; font-weight: 500; color: var(--gray-600);
+    cursor: pointer; transition: all .2s;
+  }
+
+  .filtro-status.ativo { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+
+  .busca-admin {
+    flex: 1; min-width: 200px; padding: 9px 14px;
+    border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+    font-size: 14px; outline: none;
+  }
+
+  .busca-admin:focus { border-color: var(--blue); }
+
+  /* ---- TABELA REPS ---- */
+  .reps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .rep-card {
+    background: white; border-radius: var(--radius);
+    padding: 16px; box-shadow: var(--shadow);
+    cursor: pointer; transition: box-shadow .2s;
+    border: 2px solid transparent;
+  }
+
+  .rep-card:hover { box-shadow: var(--shadow-md); border-color: var(--blue-light); }
+
+  .rep-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+
+  .rep-avatar {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--blue-light); color: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; flex-shrink: 0;
+  }
+
+  .rep-nome { font-size: 15px; font-weight: 700; color: var(--gray-900); }
+  .rep-email { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+
+  .plan-badge {
+    font-size: 11px; font-weight: 700; padding: 3px 8px;
+    border-radius: 20px; text-transform: uppercase; letter-spacing: .3px;
+  }
+
+  .plan-ativo { background: var(--green-light); color: var(--green); }
+  .plan-trial { background: var(--blue-light); color: var(--blue); }
+  .plan-inadimplente { background: var(--red-light); color: var(--red); }
+  .plan-cancelado { background: var(--gray-100); color: var(--gray-500); }
+
+  .rep-stats { display: flex; gap: 16px; }
+  .rep-stat { text-align: center; }
+  .rep-stat-val { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+  .rep-stat-lbl { font-size: 11px; color: var(--gray-400); }
+
+  .rep-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--gray-100); }
+
+  .rep-data { font-size: 12px; color: var(--gray-400); }
+  .rep-acoes { display: flex; gap: 6px; }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    z-index: 200; display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px); padding: 16px;
+  }
+
+  .modal-overlay.visivel { display: flex; }
+
+  .modal {
+    background: white; border-radius: 16px;
+    padding: 24px; width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto;
+    animation: fadeScale .2s ease-out;
+  }
+
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-titulo { font-size: 18px; font-weight: 700; }
+  .modal-fechar { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-400); padding: 4px; }
+
+  .divider { height: 1px; background: var(--gray-200); margin: 16px 0; }
+
+  .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-100); font-size: 14px; }
+  .info-label { color: var(--gray-500); }
+  .info-valor { font-weight: 600; color: var(--gray-800); }
+
+  .campo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ---- TABS ---- */
+  .tabs { display: flex; gap: 4px; background: var(--gray-100); border-radius: 8px; padding: 4px; margin-bottom: 16px; }
+  .tab { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 6px;
+    font-size: 13px; font-weight: 500; color: var(--gray-500); cursor: pointer; transition: all .2s; }
+  .tab.ativo { background: white; color: var(--blue); font-weight: 600; box-shadow: var(--shadow); }
+
+  /* ---- MINI PEDIDO ---- */
+  .mini-pedido {
+    padding: 10px; background: var(--gray-50); border-radius: 8px;
+    margin-bottom: 6px; font-size: 13px;
+  }
+
+  .mini-pedido-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .mini-pedido-marca { font-weight: 700; color: var(--blue); font-size: 11px; text-transform: uppercase; }
+  .mini-pedido-valor { font-weight: 700; color: var(--gray-800); }
+  .mini-pedido-cliente { color: var(--gray-600); }
+  .mini-pedido-data { color: var(--gray-400); font-size: 11px; }
+
+  /* ---- TOAST ---- */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--gray-800); color: white;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 14px; font-weight: 500;
+    opacity: 0; transition: all .3s; z-index: 300;
+    white-space: nowrap;
+  }
+
+  #toast.visivel { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Loading */
+  .loading-overlay {
+    position: fixed; inset: 0; background: rgba(255,255,255,.8);
+    display: none; align-items: center; justify-content: center;
+    z-index: 400; flex-direction: column; gap: 12px;
+  }
+
+  .loading-overlay.visivel { display: flex; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--gray-200); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .vazio { text-align: center; padding: 48px 24px; color: var(--gray-400); }
+  .vazio-icone { font-size: 48px; margin-bottom: 12px; }
+  .vazio-texto { font-size: 16px; font-weight: 600; color: var(--gray-600); }
+
+  @media (max-width: 600px) {
+    .admin-main { padding: 16px; }
+    .stats-bar { padding: 12px 16px; gap: 16px; }
+    .admin-topbar { padding: 0 16px; }
+    .reps-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="brand">Rep<span>Go</span></div>
-      <div class="badge">Admin Console</div>
+<!-- ===== AUTH ADMIN ===== -->
+<div id="tela-auth">
+  <div class="auth-logo">R</div>
+  <div class="auth-brand">RepGo</div>
+  <div class="auth-badge">Painel Admin</div>
+
+  <div class="auth-card">
+    <div class="campo">
+      <label>E-mail admin</label>
+      <input type="email" id="adm-email" placeholder="admin@repgo.com.br" autocomplete="email">
     </div>
-    <div id="login-err" class="login-err"></div>
-    <label class="login-lbl">Email</label>
-    <input type="email" class="login-inp" id="l-email" placeholder="admin@repgo.com.br" />
-    <label class="login-lbl">Senha</label>
-    <input type="password" class="login-inp" id="l-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()" />
-    <button class="login-btn" onclick="fazerLogin()" id="login-btn">Acessar painel</button>
+    <div class="campo">
+      <label>Senha</label>
+      <input type="password" id="adm-senha" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="fazerLoginAdmin()">Entrar no painel</button>
+    <div id="adm-erro" class="erro-msg"></div>
   </div>
 </div>
 
-<!-- ADMIN -->
-<div id="admin-screen">
-  <!-- Impersonation banner -->
-  <div id="imp-banner">
-    <span id="imp-banner-txt">▶ Visualizando como: —</span>
-    <button onclick="sairImpersonation()">✕ Voltar ao Admin</button>
+<!-- ===== ADMIN APP ===== -->
+<div id="admin-app">
+  <div class="admin-topbar">
+    <div class="admin-logo-sm">R</div>
+    <div class="admin-topbar-title">RepGo</div>
+    <div class="admin-topbar-badge">ADMIN</div>
+    <div style="flex:1"></div>
+    <button class="btn btn-secondary btn-sm" onclick="fazerLogoutAdmin()">Sair</button>
   </div>
 
-  <div class="topbar">
-    <div style="display:flex;align-items:center;gap:4px">
-      <span class="topbar-brand">Rep<span>Go</span></span>
-      <span class="topbar-badge">Admin</span>
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-item">
+      <div class="stat-valor" id="stat-total">—</div>
+      <div class="stat-label">Reps totais</div>
     </div>
-    <div class="topbar-right">
-      <span class="topbar-user" id="admin-email-display"></span>
-      <button class="topbar-logout" onclick="fazerLogout()">Sair</button>
+    <div class="stat-item">
+      <div class="stat-valor" style="color:var(--green)" id="stat-ativos">—</div>
+      <div class="stat-label">Ativos</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-valor" style="color:var(--blue)" id="stat-trial">—</div>
+      <div class="stat-label">Trial</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-valor" style="color:var(--red)" id="stat-inadimplentes">—</div>
+      <div class="stat-label">Inadimplentes</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-valor" style="color:var(--purple)" id="stat-mrr">—</div>
+      <div class="stat-label">MRR estimado</div>
     </div>
   </div>
 
-  <div class="main">
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card navy">
-        <div class="stat-label">Total Reps</div>
-        <div class="stat-value" id="st-total">—</div>
-      </div>
-      <div class="stat-card green">
-        <div class="stat-label">Ativos</div>
-        <div class="stat-value" id="st-ativos">—</div>
-      </div>
-      <div class="stat-card amber">
-        <div class="stat-label">Inadimplentes</div>
-        <div class="stat-value" id="st-inadimplentes">—</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-label">Cancelados</div>
-        <div class="stat-value" id="st-cancelados">—</div>
-      </div>
+  <div class="admin-main">
+    <div class="admin-filtros">
+      <input class="busca-admin" id="busca-rep" placeholder="🔍 Buscar rep..." oninput="filtrarReps()">
+      <button class="filtro-status ativo" id="fst-todos" onclick="setFiltroStatus('todos')">Todos</button>
+      <button class="filtro-status" id="fst-ativo" onclick="setFiltroStatus('ativo')">Ativos</button>
+      <button class="filtro-status" id="fst-trial" onclick="setFiltroStatus('trial')">Trial</button>
+      <button class="filtro-status" id="fst-inadimplente" onclick="setFiltroStatus('inadimplente')">Inadimplentes</button>
+      <button class="filtro-status" id="fst-cancelado" onclick="setFiltroStatus('cancelado')">Cancelados</button>
+      <button class="btn btn-secondary btn-sm" onclick="carregarReps()">🔄 Atualizar</button>
     </div>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <h2>Representantes</h2>
-      <div class="search-box">
-        <span class="icon">🔍</span>
-        <input type="text" id="search-inp" placeholder="Nome ou email..." oninput="filtrarTabela()" />
-      </div>
-      <div class="filter-tabs">
-        <button class="ftab on" onclick="setFiltro('todos',this)">Todos</button>
-        <button class="ftab" onclick="setFiltro('ativo',this)">Ativos</button>
-        <button class="ftab" onclick="setFiltro('inadimplente',this)">Inadimplentes</button>
-        <button class="ftab" onclick="setFiltro('cancelado',this)">Cancelados</button>
-        <button class="ftab" onclick="setFiltro('trial',this)">Trial</button>
-      </div>
-      <button class="reload-btn" onclick="carregarReps()">↻ Atualizar</button>
-    </div>
-
-    <!-- Table -->
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Representante</th>
-            <th>Contato</th>
-            <th>Cadastro</th>
-            <th>Último acesso</th>
-            <th>Status</th>
-            <th>Vencimento</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="reps-tbody">
-          <tr class="loading-row"><td colspan="7">Carregando...</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div id="lista-reps" class="reps-grid"></div>
   </div>
 </div>
 
-<!-- Modal Editar Plano -->
-<div class="modal-bg" id="modal-plano">
-  <div class="modal-box">
-    <div class="modal-hd">
-      <div>
-        <h3>Editar plano</h3>
-        <p id="modal-rep-email">—</p>
+<!-- Modal perfil rep -->
+<div class="modal-overlay" id="modal-rep">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-titulo" id="modal-rep-titulo">Perfil do rep</div>
+      <button class="modal-fechar" onclick="fecharModal('modal-rep')">✕</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab ativo" id="tab-info" onclick="mudarTabRep('info')">Perfil</button>
+      <button class="tab" id="tab-pedidos" onclick="mudarTabRep('pedidos')">Pedidos</button>
+      <button class="tab" id="tab-plano" onclick="mudarTabRep('plano')">Plano</button>
+    </div>
+
+    <!-- Tab: info -->
+    <div id="tab-content-info">
+      <div id="rep-infos"></div>
+      <div class="divider"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-purple" style="flex:1" onclick="entrarComoRep()">▶ Entrar na conta</button>
+        <button class="btn btn-secondary" onclick="fecharModal('modal-rep')">Fechar</button>
       </div>
-      <button class="modal-cls" onclick="fecharModal('modal-plano')">×</button>
     </div>
-    <div class="modal-body">
-      <label class="field-lbl">Status do plano</label>
-      <select class="field-sel" id="plan-status">
-        <option value="ativo">✅ Ativo</option>
-        <option value="trial">🟣 Trial</option>
-        <option value="inadimplente">⚠️ Inadimplente</option>
-        <option value="cancelado">❌ Cancelado</option>
-      </select>
-      <label class="field-lbl">Data de vencimento</label>
-      <input type="date" class="field-inp" id="plan-vencimento" />
-      <label class="field-lbl">Observação (opcional)</label>
-      <input type="text" class="field-inp" id="plan-obs" placeholder="Ex: aguardando pagamento..." />
+
+    <!-- Tab: pedidos -->
+    <div id="tab-content-pedidos" style="display:none">
+      <div id="rep-pedidos-lista"></div>
     </div>
-    <div class="modal-ft">
-      <button class="btn-cancel" onclick="fecharModal('modal-plano')">Cancelar</button>
-      <button class="btn-save" id="btn-salvar-plano" onclick="salvarPlano()">Salvar</button>
+
+    <!-- Tab: plano -->
+    <div id="tab-content-plano" style="display:none">
+      <div class="campo">
+        <label>Status do plano</label>
+        <select id="plano-status">
+          <option value="trial">Trial</option>
+          <option value="ativo">Ativo</option>
+          <option value="inadimplente">Inadimplente</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label>Vencimento</label>
+        <input type="date" id="plano-vencimento">
+      </div>
+      <div class="campo">
+        <label>Observações internas</label>
+        <textarea id="plano-obs" rows="3" placeholder="Notas sobre este rep..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" onclick="fecharModal('modal-rep')">Cancelar</button>
+        <button class="btn btn-primary" style="flex:1" onclick="salvarPlano()">Salvar plano</button>
+      </div>
+      <div id="plano-erro" class="erro-msg"></div>
     </div>
+
+    <input type="hidden" id="modal-rep-uid">
   </div>
 </div>
 
-<!-- Modal Impersonar -->
-<div class="modal-bg" id="modal-imp">
-  <div class="modal-box">
-    <div class="modal-hd">
-      <div>
-        <h3>Entrar como rep</h3>
-        <p>Suporte / visualização de conta</p>
-      </div>
-      <button class="modal-cls" onclick="fecharModal('modal-imp')">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="imp-card">
-        <div class="name" id="imp-name">—</div>
-        <div class="email" id="imp-email-display">—</div>
-      </div>
-      <div class="imp-warn">
-        ⚠️ Você estará visualizando a conta deste representante. Suas ações irão alterar dados reais.
-      </div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-        Ao clicar em <strong>Entrar na conta</strong>, você será redirecionado ao app principal como este usuário. Um banner de aviso será exibido para lembrar que está no modo suporte.
-      </p>
-      <button class="btn-enter" onclick="confirmarImpersonation()">▶ Entrar na conta</button>
-    </div>
-  </div>
+<!-- Toast & Loading -->
+<div id="toast"></div>
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:var(--gray-600)" id="loading-texto">Carregando...</div>
 </div>
-
-<!-- Modal Resumo do Rep -->
-<div class="modal-bg" id="modal-resumo">
-  <div class="modal-box" style="max-width:520px">
-    <div class="modal-hd">
-      <div><h3 id="resumo-nome">—</h3><p id="resumo-email">—</p></div>
-      <button class="modal-cls" onclick="fecharModal('modal-resumo')">×</button>
-    </div>
-    <div class="modal-body">
-      <div id="resumo-loading" class="resumo-loading">Carregando dados...</div>
-      <div id="resumo-conteudo" style="display:none">
-        <div class="resumo-grid">
-          <div class="resumo-stat"><div class="ico">👥</div><div class="val" id="resumo-clientes">—</div><div class="lbl">Clientes</div></div>
-          <div class="resumo-stat"><div class="ico">📦</div><div class="val" id="resumo-pedidos">—</div><div class="lbl">Pedidos no mês</div></div>
-          <div class="resumo-stat"><div class="ico">🕐</div><div class="val" id="resumo-dias" style="font-size:16px">—</div><div class="lbl">Último acesso</div></div>
-        </div>
-        <div class="ultima-acao-box">
-          <div class="titulo">Últimas atividades</div>
-          <div id="resumo-atividades"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
 
 <script>
-// ===== CONFIG =====
-var SB_URL = "https://xroedpxscpwikfzmjxio.supabase.co";
-var SB_KEY = "sb_publishable_rJm-XhVdRxY0bCfd5PqERg_QDMzQMIL";
+const SUPABASE_URL = 'https://xroedpxscpwikfzmjxio.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhyb2VkcHhzY3B3aWtmem1qeGlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDM3MDc1MDMsImV4cCI6MjAxOTI4MzUwM30.Ot-SdxwUhMeKwPQC0dItIm7h4lWRuAMpgYLiuRiZkGQ';
 
-// Email do admin — apenas este pode acessar
-var ADMIN_EMAILS = ["admin@repgo.com.br", "elias@repgo.com.br"];
+let adminUser = null;
+let todosReps = [];
+let filtroStatusAtual = 'todos';
+let repAtual = null;
 
-var db;
-var allReps = [];
-var filtroAtual = "todos";
-var editandoRep = null;
-var impersonandoRep = null;
-
-// ===== INIT =====
-function init() {
-  db = supabase.createClient(SB_URL, SB_KEY);
-
-  db.auth.getSession().then(function(r) {
-    if (r.data && r.data.session) {
-      var email = r.data.session.user.email;
-      verificarAdmin(email, r.data.session.user);
-    } else {
-      mostrarLogin();
-    }
-  });
-
-  db.auth.onAuthStateChange(function(event, session) {
-    if (event === "SIGNED_IN" && session) {
-      verificarAdmin(session.user.email, session.user);
-    } else if (event === "SIGNED_OUT") {
-      mostrarLogin();
-    }
-  });
-}
-
-function verificarAdmin(email, user) {
-  // Aceita qualquer usuário autenticado para facilitar o acesso
-  // Em produção, você pode restringir por email ou por uma tabela admin_users
-  mostrarAdmin(user);
-}
-
-function mostrarLogin() {
-  document.getElementById("login-screen").style.display = "flex";
-  document.getElementById("admin-screen").style.display = "none";
-}
-
-function mostrarAdmin(user) {
-  document.getElementById("login-screen").style.display = "none";
-  document.getElementById("admin-screen").style.display = "block";
-  document.getElementById("admin-email-display").textContent = user.email;
-  carregarReps();
-}
-
-async function fazerLogin() {
-  var email = document.getElementById("l-email").value.trim();
-  var senha = document.getElementById("l-senha").value;
-  var err = document.getElementById("login-err");
-  var btn = document.getElementById("login-btn");
-
-  if (!email || !senha) {
-    err.textContent = "Preencha email e senha.";
-    err.style.display = "block";
-    return;
+// =============================================
+// SUPABASE
+// =============================================
+async function sb(endpoint, options = {}) {
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...options.headers
+  };
+  if (adminUser?.access_token) {
+    headers['Authorization'] = `Bearer ${adminUser.access_token}`;
   }
-
-  btn.textContent = "Entrando...";
-  btn.disabled = true;
-
-  var r = await db.auth.signInWithPassword({ email: email, password: senha });
-  btn.textContent = "Acessar painel";
-  btn.disabled = false;
-
-  if (r.error) {
-    err.textContent = "Email ou senha incorretos.";
-    err.style.display = "block";
-  } else {
-    err.style.display = "none";
+  const res = await fetch(`${SUPABASE_URL}${endpoint}`, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.hint || res.statusText);
   }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
-async function fazerLogout() {
-  await db.auth.signOut();
+async function sbRpc(fn, params = {}) {
+  return sb(`/rest/v1/rpc/${fn}`, { method: 'POST', body: JSON.stringify(params) });
 }
 
-// ===== CARREGAR REPS =====
-async function carregarReps() {
-  var tbody = document.getElementById("reps-tbody");
-  tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Carregando representantes...</td></tr>';
+// =============================================
+// AUTH
+// =============================================
+async function fazerLoginAdmin() {
+  const email = document.getElementById('adm-email').value.trim();
+  const senha = document.getElementById('adm-senha').value;
+  const erroEl = document.getElementById('adm-erro');
+  erroEl.textContent = '';
+  if (!email || !senha) { erroEl.textContent = 'Preencha os campos.'; return; }
 
+  mostrarLoading('Autenticando...');
   try {
-    // Carregar perfis
-    var rPerfis = await db.from("perfil_rep").select("*");
-    var perfis = rPerfis.data || [];
+    const data = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: senha })
+    }).then(r => r.json());
 
-    // Carregar planos (tabela rep_planos — cria se não existir)
-    var rPlanos = await db.from("rep_planos").select("*");
-    var planos = rPlanos.data || [];
-    var planosMap = {};
-    planos.forEach(function(p) { planosMap[p.user_id] = p; });
+    if (!data.access_token) { throw new Error('Credenciais inválidas'); }
 
-    // Carregar dados de auth via listUsers (requer service_role key)
-    // Como usamos anon key, buscamos via perfil_rep que tem user_id
-    // Combinar dados
-    allReps = perfis.map(function(p) {
-      var plano = planosMap[p.user_id] || {};
-      return {
-        user_id: p.user_id,
-        nome: p.nome || "—",
-        email: p.email || "",
-        telefone: p.telefone || "",
-        created_at: p.created_at,
-        ultimo_acesso: p.ultimo_acesso || null,
-        status_plano: plano.status || "ativo",
-        data_vencimento: plano.data_vencimento || null,
-        observacao: plano.observacao || "",
-        plano_id: plano.id || null
-      };
+    adminUser = { id: data.user.id, email: data.user.email, access_token: data.access_token };
+    localStorage.setItem('repgo_admin_session', JSON.stringify(adminUser));
+    mostrarAdminApp();
+  } catch(e) {
+    erroEl.textContent = 'E-mail ou senha incorretos.';
+  } finally { esconderLoading(); }
+}
+
+async function fazerLogoutAdmin() {
+  localStorage.removeItem('repgo_admin_session');
+  adminUser = null;
+  document.getElementById('admin-app').style.display = 'none';
+  document.getElementById('tela-auth').style.display = '';
+}
+
+async function mostrarAdminApp() {
+  document.getElementById('tela-auth').style.display = 'none';
+  document.getElementById('admin-app').style.display = 'flex';
+  document.getElementById('admin-app').style.flexDirection = 'column';
+  await carregarReps();
+}
+
+// =============================================
+// REPS
+// =============================================
+async function carregarReps() {
+  mostrarLoading('Carregando reps...');
+  try {
+    // Buscar todos os perfis
+    const perfis = await sbRpc('admin_listar_reps') || [];
+
+    // Buscar planos
+    const planos = await sbRpc('admin_listar_planos') || [];
+
+    // Combinar
+    todosReps = perfis.map(p => {
+      const plano = planos.find(pl => pl.user_id === p.user_id) || {};
+      return { ...p, ...plano, plano_status: plano.status || 'trial' };
     });
 
     atualizarStats();
-    renderTabela();
-
+    renderizarReps(todosReps);
   } catch(e) {
-    tbody.innerHTML = '<tr class="loading-row"><td colspan="7">Erro ao carregar: ' + e.message + '</td></tr>';
-  }
+    console.error('Erro ao carregar reps:', e);
+    // Tentar fallback direto
+    try {
+      const perfis = await sb('/rest/v1/perfil_rep?select=*&order=created_at.desc');
+      todosReps = (perfis || []).map(p => ({ ...p, plano_status: 'trial' }));
+      atualizarStats();
+      renderizarReps(todosReps);
+    } catch(e2) {
+      document.getElementById('lista-reps').innerHTML = `<div class="vazio"><div class="vazio-icone">⚠️</div><div class="vazio-texto">Erro ao carregar reps</div></div>`;
+    }
+  } finally { esconderLoading(); }
 }
 
 function atualizarStats() {
-  var total = allReps.length;
-  var ativos = allReps.filter(function(r) { return r.status_plano === "ativo"; }).length;
-  var inad = allReps.filter(function(r) { return r.status_plano === "inadimplente"; }).length;
-  var canc = allReps.filter(function(r) { return r.status_plano === "cancelado"; }).length;
+  const total = todosReps.length;
+  const ativos = todosReps.filter(r => r.plano_status === 'ativo').length;
+  const trial = todosReps.filter(r => r.plano_status === 'trial').length;
+  const inadimplentes = todosReps.filter(r => r.plano_status === 'inadimplente').length;
+  const mrr = ativos * 49;
 
-  document.getElementById("st-total").textContent = total;
-  document.getElementById("st-ativos").textContent = ativos;
-  document.getElementById("st-inadimplentes").textContent = inad;
-  document.getElementById("st-cancelados").textContent = canc;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-ativos').textContent = ativos;
+  document.getElementById('stat-trial').textContent = trial;
+  document.getElementById('stat-inadimplentes').textContent = inadimplentes;
+  document.getElementById('stat-mrr').textContent = 'R$ ' + mrr.toLocaleString('pt-BR');
 }
 
-function setFiltro(f, btn) {
-  filtroAtual = f;
-  document.querySelectorAll(".ftab").forEach(function(b) { b.classList.remove("on"); });
-  btn.classList.add("on");
-  renderTabela();
+function setFiltroStatus(status) {
+  filtroStatusAtual = status;
+  document.querySelectorAll('.filtro-status').forEach(b => b.classList.remove('ativo'));
+  document.getElementById('fst-' + status)?.classList.add('ativo');
+  filtrarReps();
 }
 
-function filtrarTabela() { renderTabela(); }
+function filtrarReps() {
+  const busca = document.getElementById('busca-rep').value.toLowerCase();
+  let lista = todosReps;
+  if (filtroStatusAtual !== 'todos') {
+    lista = lista.filter(r => r.plano_status === filtroStatusAtual);
+  }
+  if (busca) {
+    lista = lista.filter(r =>
+      r.nome?.toLowerCase().includes(busca) ||
+      r.email?.toLowerCase().includes(busca)
+    );
+  }
+  renderizarReps(lista);
+}
 
-function renderTabela() {
-  var query = document.getElementById("search-inp").value.toLowerCase().trim();
-  var lista = allReps.filter(function(r) {
-    if (filtroAtual !== "todos" && r.status_plano !== filtroAtual) return false;
-    if (query) {
-      return (r.nome || "").toLowerCase().includes(query) ||
-             (r.email || "").toLowerCase().includes(query);
-    }
-    return true;
-  });
-
-  var tbody = document.getElementById("reps-tbody");
-  if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔍</div>Nenhum representante encontrado.</div></td></tr>';
+function renderizarReps(lista) {
+  const el = document.getElementById('lista-reps');
+  if (lista.length === 0) {
+    el.innerHTML = '<div class="vazio"><div class="vazio-icone">👥</div><div class="vazio-texto">Nenhum rep encontrado</div></div>';
     return;
   }
 
-  tbody.innerHTML = lista.map(function(r) {
-    return renderRow(r);
-  }).join("");
+  el.innerHTML = lista.map(r => {
+    const inicial = (r.nome || r.email || '?').charAt(0).toUpperCase();
+    const badgeClass = { ativo: 'plan-ativo', trial: 'plan-trial', inadimplente: 'plan-inadimplente', cancelado: 'plan-cancelado' }[r.plano_status] || 'plan-trial';
+    const badgeTexto = { ativo: 'Ativo', trial: 'Trial', inadimplente: 'Inadimplente', cancelado: 'Cancelado' }[r.plano_status] || 'Trial';
+    const dataStr = r.created_at ? new Date(r.created_at).toLocaleDateString('pt-BR') : '';
+
+    return `<div class="rep-card" onclick="abrirRep('${r.user_id}')">
+      <div class="rep-header">
+        <div class="rep-avatar">${escHtml(inicial)}</div>
+        <div style="flex:1">
+          <div class="rep-nome">${escHtml(r.nome || 'Sem nome')}</div>
+          <div class="rep-email">${escHtml(r.email || r.user_id?.slice(0,8) + '...')}</div>
+        </div>
+        <span class="plan-badge ${badgeClass}">${badgeTexto}</span>
+      </div>
+      <div class="rep-footer">
+        <div class="rep-data">Desde ${dataStr}</div>
+        <div class="rep-acoes" onclick="event.stopPropagation()">
+          <button class="btn btn-purple btn-sm" onclick="entrarDireto('${r.user_id}')">▶ Entrar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function renderRow(r) {
-  var createdFmt = r.created_at ? fmtDate(r.created_at) : "—";
-  var acessoFmt = r.ultimo_acesso ? fmtDate(r.ultimo_acesso) : "—";
-  var acessoClass = r.ultimo_acesso ? calcAcessoClass(r.ultimo_acesso) : "never";
-  var statusBadge = renderStatusBadge(r.status_plano);
-  var expiryHtml = renderExpiry(r.data_vencimento);
+// =============================================
+// MODAL REP
+// =============================================
+async function abrirRep(uid) {
+  repAtual = todosReps.find(r => r.user_id === uid);
+  if (!repAtual) return;
 
-  return [
-    "<tr>",
-    "<td><div class='rep-name rep-name-link' onclick='abrirResumo(\"" + r.user_id + "\")'>" + esc(r.nome) + " <span style='font-size:11px;color:var(--text3)'>↗</span></div></td>",
-    "<td><div class='rep-email'>" + esc(r.email) + "</div>" + (r.telefone ? "<div class='rep-tel'>" + esc(r.telefone) + "</div>" : "") + "</td>",
-    "<td><span class='date-text'>" + createdFmt + "</span></td>",
-    "<td><span class='date-text " + acessoClass + "'>" + acessoFmt + "</span></td>",
-    "<td>" + statusBadge + "</td>",
-    "<td>" + expiryHtml + "</td>",
-    "<td><div class='action-group'>",
-    "<button class='btn-action btn-edit-plan' onclick='abrirModalPlano(" + JSON.stringify(r.user_id) + ")'>✏️ Plano</button>",
-    "<button class='btn-action btn-impersonate' onclick='abrirModalImp(" + JSON.stringify(r.user_id) + ")'>▶ Entrar</button>",
-    "</div></td>",
-    "</tr>"
-  ].join("");
+  document.getElementById('modal-rep-uid').value = uid;
+  document.getElementById('modal-rep-titulo').textContent = repAtual.nome || 'Representante';
+  mudarTabRep('info');
+
+  // Preencher plano
+  document.getElementById('plano-status').value = repAtual.plano_status || 'trial';
+  document.getElementById('plano-vencimento').value = repAtual.vencimento || '';
+  document.getElementById('plano-obs').value = repAtual.observacoes_admin || '';
+
+  abrirModal('modal-rep');
 }
 
-function renderStatusBadge(status) {
-  var map = {
-    ativo: "badge-ativo",
-    inadimplente: "badge-inadimplente",
-    cancelado: "badge-cancelado",
-    trial: "badge-trial"
-  };
-  var labels = {
-    ativo: "ATIVO", inadimplente: "INADIMPLENTE", cancelado: "CANCELADO", trial: "TRIAL"
-  };
-  var cls = map[status] || "badge-ativo";
-  return "<span class='status-badge " + cls + "'>" + (labels[status] || status.toUpperCase()) + "</span>";
+function mudarTabRep(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('ativo'));
+  document.getElementById('tab-' + tab)?.classList.add('ativo');
+
+  document.getElementById('tab-content-info').style.display = tab === 'info' ? '' : 'none';
+  document.getElementById('tab-content-pedidos').style.display = tab === 'pedidos' ? '' : 'none';
+  document.getElementById('tab-content-plano').style.display = tab === 'plano' ? '' : 'none';
+
+  if (tab === 'info') renderInfoRep();
+  if (tab === 'pedidos') carregarPedidosRep();
 }
 
-function renderExpiry(dateStr) {
-  if (!dateStr) return "<span style='color:var(--text3);font-size:12px;font-family:var(--mono)'>—</span>";
-  var d = new Date(dateStr);
-  var hoje = new Date();
-  var diff = Math.ceil((d - hoje) / 86400000);
-  var fmt = d.toLocaleDateString("pt-BR");
-  if (diff < 0) return "<span class='expiry-date expiry-expired'>⚠ " + fmt + "</span>";
-  if (diff <= 7) return "<span class='expiry-date expiry-soon'>⏰ " + fmt + "</span>";
-  return "<span class='expiry-date expiry-ok'>" + fmt + "</span>";
+function renderInfoRep() {
+  const r = repAtual;
+  if (!r) return;
+  const badgeClass = { ativo: 'plan-ativo', trial: 'plan-trial', inadimplente: 'plan-inadimplente', cancelado: 'plan-cancelado' }[r.plano_status] || 'plan-trial';
+
+  document.getElementById('rep-infos').innerHTML = `
+    <div class="info-row"><span class="info-label">Nome</span><span class="info-valor">${escHtml(r.nome || '—')}</span></div>
+    <div class="info-row"><span class="info-label">E-mail</span><span class="info-valor">${escHtml(r.email || '—')}</span></div>
+    <div class="info-row"><span class="info-label">Telefone</span><span class="info-valor">${escHtml(r.telefone || '—')}</span></div>
+    <div class="info-row"><span class="info-label">Plano</span><span class="plan-badge ${badgeClass}" style="font-size:12px">${r.plano_status || 'trial'}</span></div>
+    <div class="info-row"><span class="info-label">Vencimento</span><span class="info-valor">${r.vencimento ? new Date(r.vencimento).toLocaleDateString('pt-BR') : '—'}</span></div>
+    <div class="info-row"><span class="info-label">ID</span><span class="info-valor" style="font-size:11px;color:var(--gray-400)">${r.user_id}</span></div>
+  `;
 }
 
-function calcAcessoClass(dateStr) {
-  var d = new Date(dateStr);
-  var dias = Math.floor((Date.now() - d.getTime()) / 86400000);
-  if (dias <= 7) return "recent";
-  if (dias <= 30) return "";
-  return "old";
-}
+async function carregarPedidosRep() {
+  const uid = document.getElementById('modal-rep-uid').value;
+  const el = document.getElementById('rep-pedidos-lista');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400)">Carregando...</div>';
 
-function fmtDate(dateStr) {
-  var d = new Date(dateStr);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
+  try {
+    const pedidos = await sbRpc('suporte_pedidos', { p_user_id: uid }) || [];
 
-function esc(str) {
-  return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+    if (pedidos.length === 0) {
+      el.innerHTML = '<div class="vazio"><div class="vazio-icone">📋</div><div class="vazio-texto">Nenhum pedido</div></div>';
+      return;
+    }
 
-// ===== MODAL PLANO =====
-function abrirModalPlano(userId) {
-  var rep = allReps.find(function(r) { return r.user_id === userId; });
-  if (!rep) return;
-  editandoRep = rep;
-  document.getElementById("modal-rep-email").textContent = rep.nome + " · " + rep.email;
-  document.getElementById("plan-status").value = rep.status_plano || "ativo";
-  document.getElementById("plan-vencimento").value = rep.data_vencimento ? rep.data_vencimento.split("T")[0] : "";
-  document.getElementById("plan-obs").value = rep.observacao || "";
-  document.getElementById("modal-plano").classList.add("on");
+    const recentes = pedidos.slice(0, 20);
+    el.innerHTML = `<div style="font-size:13px;color:var(--gray-500);margin-bottom:12px">${pedidos.length} pedidos no total</div>` +
+      recentes.map(p => {
+        const dataStr = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
+        return `<div class="mini-pedido">
+          <div class="mini-pedido-header">
+            <div class="mini-pedido-marca">${escHtml(p.marca || '')}</div>
+            <div class="mini-pedido-valor">R$ ${(parseFloat(p.valor_total)||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <div class="mini-pedido-cliente">${escHtml(p.cliente_nome || '')}</div>
+            <div class="mini-pedido-data">${dataStr}</div>
+          </div>
+        </div>`;
+      }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--red);font-size:13px;padding:12px">Erro ao carregar pedidos.</div>';
+    console.error(e);
+  }
 }
 
 async function salvarPlano() {
-  if (!editandoRep) return;
-  var btn = document.getElementById("btn-salvar-plano");
-  btn.textContent = "Salvando...";
-  btn.disabled = true;
+  const uid = document.getElementById('modal-rep-uid').value;
+  const status = document.getElementById('plano-status').value;
+  const vencimento = document.getElementById('plano-vencimento').value;
+  const obs = document.getElementById('plano-obs').value.trim();
 
-  var dados = {
-    user_id: editandoRep.user_id,
-    status: document.getElementById("plan-status").value,
-    data_vencimento: document.getElementById("plan-vencimento").value || null,
-    observacao: document.getElementById("plan-obs").value.trim() || null,
-    updated_at: new Date().toISOString()
-  };
-
+  mostrarLoading('Salvando plano...');
   try {
-    var r;
-    if (editandoRep.plano_id) {
-      r = await db.from("rep_planos").update(dados).eq("id", editandoRep.plano_id);
-    } else {
-      r = await db.from("rep_planos").insert(dados);
-    }
+    await sb('/rest/v1/rep_planos', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: uid, status, vencimento: vencimento || null, observacoes_admin: obs }),
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+    });
 
-    if (r.error) throw r.error;
-
-    // Atualizar localmente
-    var idx = allReps.findIndex(function(r) { return r.user_id === editandoRep.user_id; });
+    // Atualizar local
+    const idx = todosReps.findIndex(r => r.user_id === uid);
     if (idx >= 0) {
-      allReps[idx].status_plano = dados.status;
-      allReps[idx].data_vencimento = dados.data_vencimento;
-      allReps[idx].observacao = dados.observacao;
+      todosReps[idx] = { ...todosReps[idx], plano_status: status, vencimento, observacoes_admin: obs };
+      repAtual = todosReps[idx];
     }
 
-    fecharModal("modal-plano");
+    fecharModal('modal-rep');
+    mostrarToast('Plano atualizado!');
     atualizarStats();
-    renderTabela();
-    showToast("Plano atualizado com sucesso!", "success");
-
+    filtrarReps();
   } catch(e) {
-    showToast("Erro: " + e.message, "error");
-  }
-
-  btn.textContent = "Salvar";
-  btn.disabled = false;
+    document.getElementById('plano-erro').textContent = 'Erro ao salvar. Verifique se a tabela rep_planos existe.';
+    console.error(e);
+  } finally { esconderLoading(); }
 }
 
-// ===== MODAL IMPERSONATION =====
-function abrirModalImp(userId) {
-  var rep = allReps.find(function(r) { return r.user_id === userId; });
-  if (!rep) return;
-  impersonandoRep = rep;
-  document.getElementById("imp-name").textContent = rep.nome;
-  document.getElementById("imp-email-display").textContent = rep.email;
-  document.getElementById("modal-imp").classList.add("on");
+function entrarComoRep() {
+  const uid = document.getElementById('modal-rep-uid').value;
+  fecharModal('modal-rep');
+  entrarDireto(uid);
 }
 
-function confirmarImpersonation() {
-  if (!impersonandoRep) return;
-  fecharModal("modal-imp");
-
-  // Salvar sessão admin para poder voltar
-  try {
-    sessionStorage.setItem("repgo_admin_mode", JSON.stringify({
-      userId: impersonandoRep.user_id,
-      nome: impersonandoRep.nome,
-      email: impersonandoRep.email
-    }));
-  } catch(e) {}
-
-  // Mostrar banner
-  document.getElementById("imp-banner-txt").textContent =
-    "▶ Modo suporte ativo: " + impersonandoRep.nome + " (" + impersonandoRep.email + ")";
-  document.getElementById("imp-banner").classList.add("on");
-
-  // Abrir app principal em nova aba com parâmetro de suporte
-  // O admin visualiza como o rep — abre o index.html passando o user_id
-  var url = "index.html?support_uid=" + encodeURIComponent(impersonandoRep.user_id) +
-            "&support_name=" + encodeURIComponent(impersonandoRep.nome);
-
-  // Instrução para o index.html detectar o parâmetro e carregar como o usuário
-  showToast("Abrindo conta de " + impersonandoRep.nome + "...", "success");
-  setTimeout(function() {
-    window.open(url, "_blank");
-  }, 600);
+function entrarDireto(uid) {
+  const url = `/?support_uid=${uid}`;
+  window.open(url, '_blank');
 }
 
-function sairImpersonation() {
-  try { sessionStorage.removeItem("repgo_admin_mode"); } catch(e) {}
-  document.getElementById("imp-banner").classList.remove("on");
-  impersonandoRep = null;
-  showToast("Modo suporte encerrado.", "success");
+// =============================================
+// UTILITÁRIOS
+// =============================================
+function fmt(valor) {
+  return 'R$ ' + (parseFloat(valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-
-// ===== MODAL RESUMO =====
-async function abrirResumo(userId) {
-  var rep = allReps.find(function(r) { return r.user_id === userId; });
-  if (!rep) return;
-
-  document.getElementById("resumo-nome").textContent = rep.nome;
-  document.getElementById("resumo-email").textContent = rep.email || "—";
-  document.getElementById("resumo-loading").style.display = "block";
-  document.getElementById("resumo-conteudo").style.display = "none";
-  document.getElementById("modal-resumo").classList.add("on");
-
-  try {
-    // Buscar dados da view admin_resumo_reps (ignora RLS)
-    var rResumo = await db.from("admin_resumo_reps").select("*").eq("user_id", userId).single();
-    var resumo = rResumo.data || {};
-
-    var totalClientes = resumo.total_clientes || 0;
-    var pedidosMes = resumo.pedidos_mes || 0;
-
-    // Último acesso
-    var diasAcesso = "—";
-    if (rep.ultimo_acesso) {
-      var dias = Math.floor((Date.now() - new Date(rep.ultimo_acesso).getTime()) / 86400000);
-      diasAcesso = dias === 0 ? "Hoje" : dias === 1 ? "1 dia" : dias + " dias";
-    }
-
-    // Últimas atividades via RPC que ignora RLS
-    var rUlt = await db.rpc("admin_ultimos_pedidos", { p_user_id: userId });
-    var ults = rUlt.data || [];
-
-    document.getElementById("resumo-clientes").textContent = totalClientes;
-    document.getElementById("resumo-pedidos").textContent = pedidosMes;
-    document.getElementById("resumo-dias").textContent = diasAcesso;
-
-    var atvsEl = document.getElementById("resumo-atividades");
-    if (!ults.length) {
-      atvsEl.innerHTML = "<div style='font-size:13px;color:var(--text3);padding:8px 0'>Nenhum pedido registrado ainda.</div>";
-    } else {
-      atvsEl.innerHTML = ults.map(function(p) {
-        var val = p.valor_total ? "R$ " + parseFloat(p.valor_total).toLocaleString("pt-BR", {minimumFractionDigits: 2}) : "";
-        var data = p.data_pedido ? new Date(p.data_pedido + "T12:00:00").toLocaleDateString("pt-BR") : "—";
-        return "<div class=\"acao-item\">" +
-          "<div class=\"acao-dot\"></div>" +
-          "<div class=\"acao-desc\">Pedido " + esc(p.marca || "—") + (val ? " · " + val : "") + "</div>" +
-          "<div class=\"acao-data\">" + data + "</div>" +
-          "</div>";
-      }).join("");
-    }
-
-    document.getElementById("resumo-loading").style.display = "none";
-    document.getElementById("resumo-conteudo").style.display = "block";
-
-  } catch(e) {
-    document.getElementById("resumo-loading").textContent = "Erro: " + e.message;
-  }
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ===== HELPERS =====
+function mostrarToast(msg, duracao = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('visivel');
+  setTimeout(() => el.classList.remove('visivel'), duracao);
+}
+
+function mostrarLoading(msg = 'Carregando...') {
+  document.getElementById('loading-texto').textContent = msg;
+  document.getElementById('loading').classList.add('visivel');
+}
+
+function esconderLoading() {
+  document.getElementById('loading').classList.remove('visivel');
+}
+
+function abrirModal(id) {
+  document.getElementById(id).classList.add('visivel');
+  document.body.style.overflow = 'hidden';
+}
+
 function fecharModal(id) {
-  document.getElementById(id).classList.remove("on");
+  document.getElementById(id).classList.remove('visivel');
+  document.body.style.overflow = '';
 }
 
-function showToast(msg, tipo) {
-  var t = document.getElementById("toast");
-  t.textContent = msg;
-  t.className = "toast " + tipo + " on";
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(function() {
-    t.classList.remove("on");
-  }, 3000);
-}
-
-// Fechar modal ao clicar fora
-document.querySelectorAll(".modal-bg").forEach(function(bg) {
-  bg.addEventListener("click", function(e) {
-    if (e.target === bg) bg.classList.remove("on");
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      overlay.classList.remove('visivel');
+      document.body.style.overflow = '';
+    }
   });
+});
+
+// =============================================
+// INIT
+// =============================================
+async function init() {
+  const sessaoStr = localStorage.getItem('repgo_admin_session');
+  if (sessaoStr) {
+    try {
+      adminUser = JSON.parse(sessaoStr);
+      const user = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${adminUser.access_token}` }
+      }).then(r => r.json());
+      if (user?.id) {
+        await mostrarAdminApp();
+        return;
+      }
+    } catch(e) { localStorage.removeItem('repgo_admin_session'); }
+  }
+  document.getElementById('tela-auth').style.display = '';
+}
+
+document.getElementById('adm-senha').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fazerLoginAdmin();
 });
 
 init();
