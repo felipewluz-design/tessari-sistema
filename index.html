@@ -845,6 +845,10 @@
               <div id="sugestoes-cliente" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--gray-200);border-radius:8px;z-index:50;box-shadow:var(--shadow-lg);max-height:180px;overflow-y:auto"></div>
             </div>
             <input type="hidden" id="conf-cliente-id">
+            <input type="hidden" id="conf-cliente-cidade">
+            <input type="hidden" id="conf-cliente-uf">
+            <input type="hidden" id="conf-cliente-cnpj">
+            <input type="hidden" id="conf-cliente-telefone">
           </div>
           <div class="campo-row">
             <div class="campo">
@@ -1903,6 +1907,10 @@ function preencherConfirmacao(dados) {
   document.getElementById('conf-marca').value = dados.marca || '';
   document.getElementById('conf-cliente-nome').value = dados.cliente || '';
   document.getElementById('conf-cliente-id').value = '';
+  document.getElementById('conf-cliente-cidade').value = dados.cliente_cidade || '';
+  document.getElementById('conf-cliente-uf').value = dados.cliente_uf || '';
+  document.getElementById('conf-cliente-cnpj').value = dados.cliente_cnpj || '';
+  document.getElementById('conf-cliente-telefone').value = dados.cliente_telefone || '';
   document.getElementById('conf-numero').value = dados.numero_pedido || '';
   document.getElementById('conf-pares').value = dados.pares || '';
   document.getElementById('conf-valor').value = dados.valor_total || '';
@@ -1980,11 +1988,22 @@ async function salvarPedido() {
 
   mostrarLoading('Salvando pedido...');
   try {
-    // Se cliente não encontrado, criar
+    // Se cliente não encontrado, criar com dados da IA
     if (!clienteId && clienteNome) {
+      const cidade = document.getElementById('conf-cliente-cidade').value.trim();
+      const uf = document.getElementById('conf-cliente-uf').value.trim();
+      const cnpj = document.getElementById('conf-cliente-cnpj').value.trim();
+      const telefone = document.getElementById('conf-cliente-telefone').value.trim();
       const novoCliente = await sb('/rest/v1/rg_clientes', {
         method: 'POST',
-        body: JSON.stringify({ user_id: uid, nome: clienteNome, cidade: 'Não informada' })
+        body: JSON.stringify({
+          user_id: uid,
+          nome: clienteNome,
+          cidade: cidade || 'Não informada',
+          uf: uf || null,
+          cnpj: cnpj || null,
+          telefone: telefone || null
+        })
       });
       clienteId = Array.isArray(novoCliente) ? novoCliente[0]?.id : novoCliente?.id;
     }
