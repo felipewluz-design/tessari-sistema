@@ -881,6 +881,10 @@
             </div>
           </div>
           <div class="campo">
+            <label>Data do pedido <span style="font-size:11px;color:var(--gray-400);font-weight:400">(deixe em branco para usar hoje)</span></label>
+            <input type="date" id="conf-data-pedido">
+          </div>
+          <div class="campo">
             <label>Observações</label>
             <textarea id="conf-obs" rows="2" placeholder="Opcional..."></textarea>
           </div>
@@ -1909,6 +1913,13 @@ function preencherConfirmacao(dados) {
     try {
       const d = new Date(dados.previsao_faturamento);
       if (!isNaN(d)) document.getElementById('conf-previsao').value = d.toISOString().split('T')[0];
+    } catch(e) {}
+  }
+
+  if (dados.data_pedido) {
+    try {
+      const d = new Date(dados.data_pedido);
+      if (!isNaN(d)) document.getElementById('conf-data-pedido').value = d.toISOString().split('T')[0];
     } catch(e) {}
   }
 
