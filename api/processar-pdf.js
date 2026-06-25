@@ -55,6 +55,7 @@ Formato exato do JSON:
   "comissao_valor": número decimal do valor de comissão em reais ou null,
   "condicao_pagamento": "ex: 30/60/90 dias ou à vista",
   "previsao_faturamento": "data em formato YYYY-MM-DD ou null",
+  "data_pedido": "data de emissão do pedido em formato YYYY-MM-DD ou null",
   "observacoes": "informações adicionais relevantes ou null"
 }
 
