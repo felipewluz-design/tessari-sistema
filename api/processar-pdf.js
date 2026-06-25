@@ -56,6 +56,10 @@ Formato exato do JSON:
   "condicao_pagamento": "ex: 30/60/90 dias ou à vista",
   "previsao_faturamento": "data em formato YYYY-MM-DD ou null",
   "data_pedido": "data de emissão do pedido em formato YYYY-MM-DD ou null",
+  "cliente_cidade": "cidade do cliente comprador ou null",
+  "cliente_uf": "estado/UF do cliente comprador (2 letras) ou null",
+  "cliente_cnpj": "CNPJ do cliente comprador (apenas números) ou null",
+  "cliente_telefone": "telefone do cliente comprador ou null",
   "observacoes": "informações adicionais relevantes ou null"
 }
 
