@@ -1468,7 +1468,7 @@ async function carregarDashboard() {
     pedidos = pedidos || [];
 
     const pedidosMes = pedidos.filter(p => {
-      const d = new Date(p.created_at || p.data_pedido);
+      const d = dataPedidoObj(p);
       return d >= new Date(inicioMes) && d <= new Date(fimMes);
     });
 
@@ -1507,7 +1507,7 @@ async function carregarDashboard() {
 
     // Clientes ativos (últimos 60 dias)
     const limite60 = new Date(); limite60.setDate(limite60.getDate() - 60);
-    const clientesComPedido = new Set(pedidos.filter(p => new Date(p.created_at || p.data_pedido) >= limite60).map(p => p.cliente_id));
+    const clientesComPedido = new Set(pedidos.filter(p => dataPedidoObj(p) >= limite60).map(p => p.cliente_id));
     document.getElementById('dash-clientes-ativos').textContent = clientesComPedido.size;
 
     // Por marca
@@ -1540,9 +1540,9 @@ async function carregarDashboard() {
     const hoje = new Date();
     const alertas = clientes.map(c => {
       const ultimoPedido = pedidos.filter(p => p.cliente_id === c.id)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        .sort((a, b) => dataPedidoObj(b) - dataPedidoObj(a))[0];
       const diasSem = ultimoPedido
-        ? Math.floor((hoje - new Date(ultimoPedido.created_at)) / 86400000)
+        ? Math.floor((hoje - dataPedidoObj(ultimoPedido)) / 86400000)
         : 999;
       return { ...c, diasSem };
     }).filter(c => c.diasSem >= 45).sort((a, b) => b.diasSem - a.diasSem).slice(0, 5);
@@ -1611,9 +1611,9 @@ function renderizarClientes(lista) {
   // Calcular dias para cada cliente
   const listaComDias = lista.map(c => {
     const ultimoPedido = todosPedidos.filter(p => p.cliente_id === c.id)
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      .sort((a, b) => dataPedidoObj(b) - dataPedidoObj(a))[0];
     const dias = ultimoPedido
-      ? Math.floor((new Date() - new Date(ultimoPedido.created_at)) / 86400000)
+      ? Math.floor((new Date() - dataPedidoObj(ultimoPedido)) / 86400000)
       : 999;
     return { ...c, dias };
   });
@@ -1814,7 +1814,7 @@ async function carregarPedidos() {
 
     el.innerHTML = todosPedidos.map(p => {
       const nomeCliente = p.rg_clientes?.nome || p.cliente_nome || 'Cliente';
-      const dataStr = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
+      const dataStr = dataPedidoObj(p).toLocaleDateString('pt-BR');
       return `<div class="pedido-item" onclick="abrirDetalhesPedido('${p.id}')">
         <div class="pedido-header">
           <div>
@@ -2275,6 +2275,14 @@ function fmt(valor) {
   return 'R$ ' + (parseFloat(valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Data real do pedido: usa data_pedido (data em que o pedido foi emitido/registrado)
+// e só cai para created_at (data em que foi cadastrado no app) se data_pedido não existir.
+// Isso evita que pedidos antigos lançados tardiamente apareçam no mês/ano errado.
+function dataPedidoObj(p) {
+  if (p.data_pedido) return new Date(p.data_pedido + 'T00:00:00');
+  return new Date(p.created_at);
+}
+
 function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2336,7 +2344,7 @@ async function carregarRelatorios() {
         : sb(`/rest/v1/rg_gastos?user_id=eq.${uid}&select=*`)
     ]);
 
-    const pedidosAno = (pedidos || []).filter(p => new Date(p.created_at).getFullYear() === anoRelatorio);
+    const pedidosAno = (pedidos || []).filter(p => dataPedidoObj(p).getFullYear() === anoRelatorio);
     const gastosAno = (gastos || []).filter(g => new Date(g.data + 'T00:00:00').getFullYear() === anoRelatorio);
 
     const totalComissao = pedidosAno.reduce((s, p) => s + (parseFloat(p.comissao_valor) || 0), 0);
@@ -2351,7 +2359,7 @@ async function carregarRelatorios() {
     // Por mês
     const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     const porMes = Array.from({length:12}, (_, i) => {
-      const ped = pedidosAno.filter(p => new Date(p.created_at).getMonth() === i);
+      const ped = pedidosAno.filter(p => dataPedidoObj(p).getMonth() === i);
       const gas = gastosAno.filter(g => new Date(g.data + 'T00:00:00').getMonth() === i);
       const comissao = ped.reduce((s,p) => s + (parseFloat(p.comissao_valor)||0), 0);
       const gasto = gas.reduce((s,g) => s + (parseFloat(g.valor)||0), 0);
@@ -2578,7 +2586,7 @@ function abrirDetalhesPedido(id) {
   const p = todosPedidos.find(p => p.id === id);
   if (!p) return;
   const nomeCliente = p.rg_clientes?.nome || p.cliente_nome || 'Cliente';
-  const dataStr = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
+  const dataStr = dataPedidoObj(p).toLocaleDateString('pt-BR');
   const previsao = p.previsao_faturamento ? new Date(p.previsao_faturamento + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
 
   document.getElementById('modal-pedido-titulo').textContent = p.marca || 'Pedido';
