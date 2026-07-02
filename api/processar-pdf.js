@@ -71,6 +71,7 @@ Regras:
 - comissao_percentual é APENAS a comissão do representante comercial (campo "comissão rep", "% comissão", "comissão" explícita). NUNCA use "C. DUP.", "C. FAT.", "desconto de duplicata", "desconto de faturamento" ou qualquer desconto do cliente como comissão — esses são descontos comerciais, não comissão do rep. Se não houver comissão explícita do representante, retorne null.
 - condicao_pagamento: extraia o prazo de pagamento (ex: "30/60/90 dias"), ignorando percentuais de desconto
 - previsao_faturamento: procure por "previsão de faturamento", "prev. fat.", "data entrega" — retorne em formato YYYY-MM-DD
+- data_pedido: procure por "data do pedido", "data de emissão", "emissão", "data", ou também "REGISTRO" (campo comum em pedidos de calçados que indica a data de registro/emissão do pedido). NUNCA confunda com "previsão de faturamento", que é uma data futura estimada, diferente da data de emissão do pedido.
 - Se o documento não parecer ser um pedido, retorne todos os campos como null mas mantenha a estrutura`;
 
   try {
