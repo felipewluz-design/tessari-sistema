@@ -1934,7 +1934,10 @@ async function processarArquivo(file) {
 
     const resp = await fetch('/api/processar-pdf', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${usuarioAtual.access_token}`
+      },
       body: JSON.stringify({ base64, tipo: isPdf ? 'pdf' : 'imagem', mimeType: file.type })
     });
 
@@ -2234,7 +2237,9 @@ async function salvarGasto() {
 async function carregarMarcas() {
   const uid = modoSuporte ? suporteUid : usuarioAtual.id;
   try {
-    const data = await sb(`/rest/v1/rg_marcas?user_id=eq.${uid}&select=*&order=nome.asc`);
+    const data = modoSuporte
+      ? await sbRpc('rg_suporte_marcas', { p_user_id: uid })
+      : await sb(`/rest/v1/rg_marcas?user_id=eq.${uid}&select=*&order=nome.asc`);
     todasMarcas = data || [];
 
     const el = document.getElementById('lista-marcas');
