@@ -1172,7 +1172,25 @@
     </div>
     <div class="divider"></div>
     <a href="/privacidade.html" target="_blank" style="display:block;text-align:center;font-size:13px;color:var(--gray-500);margin-bottom:10px;text-decoration:none">Política de Privacidade</a>
+    <button class="btn btn-secondary" style="width:100%;margin-bottom:10px" onclick="fecharModal('modal-perfil');abrirModal('modal-suporte')">💬 Fale com a gente</button>
     <button class="btn btn-secondary" style="width:100%" onclick="fazerLogout()">🚪 Sair da conta</button>
+  </div>
+</div>
+
+<!-- Modal suporte -->
+<div class="modal-overlay" id="modal-suporte">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">Fale com a gente</div>
+    <p style="font-size:13px;color:var(--gray-500);margin:-8px 0 14px">Escreva sua dúvida ou problema. Vamos abrir seu app de e-mail com a mensagem pronta pra enviar.</p>
+    <div class="campo">
+      <label>Mensagem</label>
+      <textarea id="suporte-msg" rows="5" placeholder="Conta pra gente o que está acontecendo..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-secondary" style="flex:1" onclick="fecharModal('modal-suporte')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="enviarSuporteEmail()">Enviar</button>
+    </div>
   </div>
 </div>
 
@@ -2330,6 +2348,22 @@ async function salvarPerfil() {
     mostrarToast('Erro ao salvar perfil.');
     console.error(e);
   } finally { esconderLoading(); }
+}
+
+function enviarSuporteEmail() {
+  const msg = document.getElementById('suporte-msg').value.trim();
+  if (!msg) { mostrarToast('Escreve sua mensagem antes de enviar.'); return; }
+
+  const nome = perfilAtual?.nome || 'Representante';
+  const email = usuarioAtual?.email || '';
+  const assunto = `Suporte RepGo — ${nome}`;
+  const corpo = `${msg}\n\n---\nRep: ${nome}\nE-mail da conta: ${email}\nID: ${usuarioAtual?.id || ''}`;
+
+  const link = `mailto:repgosupport@gmail.com?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+  window.location.href = link;
+
+  document.getElementById('suporte-msg').value = '';
+  fecharModal('modal-suporte');
 }
 
 // =============================================
