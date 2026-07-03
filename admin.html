@@ -710,10 +710,8 @@ async function salvarPlano() {
 
   mostrarLoading('Salvando plano...');
   try {
-    await sb('/rest/v1/rg_planos', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: uid, status, vencimento: vencimento || null, observacoes_admin: obs }),
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+    await sbRpc('rg_admin_salvar_plano', {
+      p_user_id: uid, p_status: status, p_vencimento: vencimento || null, p_obs: obs
     });
 
     // Atualizar local
@@ -728,7 +726,7 @@ async function salvarPlano() {
     atualizarStats();
     filtrarReps();
   } catch(e) {
-    document.getElementById('plano-erro').textContent = 'Erro ao salvar. Verifique se a tabela rep_planos existe.';
+    document.getElementById('plano-erro').textContent = 'Erro ao salvar. Verifique se você tem acesso de admin.';
     console.error(e);
   } finally { esconderLoading(); }
 }
