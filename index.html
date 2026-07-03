@@ -457,6 +457,21 @@
 
   .filtro-btn.ativo { border-color: var(--blue); color: var(--blue); background: var(--blue-light); font-weight: 600; }
 
+  /* ---- PEDIDOS: navegador de mes ---- */
+  .mes-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    background: white; border-radius: var(--radius-sm); box-shadow: var(--shadow);
+    padding: 10px 6px; margin-bottom: 14px;
+  }
+  .mes-nav-btn {
+    width: 36px; height: 36px; border: none; background: var(--gray-100);
+    border-radius: 8px; font-size: 18px; color: var(--gray-600); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .mes-nav-btn:active { background: var(--gray-200); }
+  .mes-nav-label { font-size: 15px; font-weight: 700; color: var(--gray-800); text-transform: capitalize; }
+  .mes-nav-toggle { font-size: 11px; color: var(--blue); cursor: pointer; margin-top: 2px; }
+
   .gasto-item {
     background: white; border-radius: var(--radius-sm);
     padding: 14px; margin-bottom: 6px;
@@ -779,6 +794,14 @@
 
     <!-- ===== PEDIDOS ===== -->
     <div id="tela-pedidos" class="tela">
+      <div class="mes-nav">
+        <button class="mes-nav-btn" onclick="mudarMesPedidos(-1)">‹</button>
+        <div style="text-align:center">
+          <div class="mes-nav-label" id="pedidos-mes-label">—</div>
+          <div class="mes-nav-toggle" id="pedidos-ver-todos" onclick="alternarTodosPedidos()">ver todos os pedidos</div>
+        </div>
+        <button class="mes-nav-btn" onclick="mudarMesPedidos(1)">›</button>
+      </div>
       <div id="lista-pedidos"></div>
       <button class="pedido-fab" onclick="abrirNovoPedido()" title="Novo pedido">+</button>
     </div>
@@ -1192,6 +1215,8 @@ let modoSuporte = false;
 let suporteUid = null;
 let todosClientes = [];
 let todosPedidos = [];
+let filtroPedidosData = new Date();
+let filtroPedidosModo = 'mes'; // 'mes' ou 'todos'
 let todosGastos = [];
 let todasMarcas = [];
 let filtroPeriodo = 'mes';
@@ -1801,42 +1826,74 @@ async function carregarPedidos() {
       data = await sb(`/rest/v1/rg_pedidos?user_id=eq.${uid}&select=*,rg_clientes(nome)&order=created_at.desc`);
     }
     todosPedidos = data || [];
-
-    const el = document.getElementById('lista-pedidos');
-    if (todosPedidos.length === 0) {
-      el.innerHTML = `<div class="vazio">
-        <div class="vazio-icone">📋</div>
-        <div class="vazio-texto">Nenhum pedido ainda</div>
-        <div class="vazio-sub">Toque em + para registrar seu primeiro pedido</div>
-      </div>`;
-      return;
-    }
-
-    el.innerHTML = todosPedidos.map(p => {
-      const nomeCliente = p.rg_clientes?.nome || p.cliente_nome || 'Cliente';
-      const dataStr = dataPedidoObj(p).toLocaleDateString('pt-BR');
-      return `<div class="pedido-item" onclick="abrirDetalhesPedido('${p.id}')">
-        <div class="pedido-header">
-          <div>
-            <div class="pedido-marca">${escHtml(p.marca || '')}</div>
-            <div class="pedido-cliente">${escHtml(nomeCliente)}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="pedido-valor">${fmt(p.valor_total)}</div>
-            <div class="pedido-comissao">+${fmt(p.comissao_valor)}</div>
-          </div>
-        </div>
-        <div class="pedido-meta">
-          ${p.numero_pedido ? `<div class="pedido-tag">📄 ${escHtml(p.numero_pedido)}</div>` : ''}
-          ${p.pares ? `<div class="pedido-tag">👟 ${p.pares} pares</div>` : ''}
-          ${dataStr ? `<div class="pedido-tag">📅 ${dataStr}</div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+    renderizarListaPedidos();
   } catch(e) {
     console.error('Erro pedidos:', e);
     mostrarToast('Erro ao carregar pedidos');
   }
+}
+
+function mudarMesPedidos(delta) {
+  filtroPedidosModo = 'mes';
+  filtroPedidosData = new Date(filtroPedidosData.getFullYear(), filtroPedidosData.getMonth() + delta, 1);
+  renderizarListaPedidos();
+}
+
+function alternarTodosPedidos() {
+  filtroPedidosModo = filtroPedidosModo === 'todos' ? 'mes' : 'todos';
+  renderizarListaPedidos();
+}
+
+function renderizarListaPedidos() {
+  const labelEl = document.getElementById('pedidos-mes-label');
+  const toggleEl = document.getElementById('pedidos-ver-todos');
+
+  let lista = todosPedidos;
+  if (filtroPedidosModo === 'mes') {
+    const ano = filtroPedidosData.getFullYear();
+    const mes = filtroPedidosData.getMonth();
+    lista = todosPedidos.filter(p => {
+      const d = dataPedidoObj(p);
+      return d.getFullYear() === ano && d.getMonth() === mes;
+    });
+    labelEl.textContent = filtroPedidosData.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    toggleEl.textContent = 'ver todos os pedidos';
+  } else {
+    labelEl.textContent = 'Todos os pedidos';
+    toggleEl.textContent = 'ver por mês';
+  }
+
+  const el = document.getElementById('lista-pedidos');
+  if (lista.length === 0) {
+    el.innerHTML = `<div class="vazio">
+      <div class="vazio-icone">📋</div>
+      <div class="vazio-texto">Nenhum pedido ${filtroPedidosModo === 'mes' ? 'neste mês' : 'ainda'}</div>
+      <div class="vazio-sub">${filtroPedidosModo === 'mes' ? 'Toque nas setas para ver outro mês' : 'Toque em + para registrar seu primeiro pedido'}</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = lista.map(p => {
+    const nomeCliente = p.rg_clientes?.nome || p.cliente_nome || 'Cliente';
+    const dataStr = dataPedidoObj(p).toLocaleDateString('pt-BR');
+    return `<div class="pedido-item" onclick="abrirDetalhesPedido('${p.id}')">
+      <div class="pedido-header">
+        <div>
+          <div class="pedido-marca">${escHtml(p.marca || '')}</div>
+          <div class="pedido-cliente">${escHtml(nomeCliente)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="pedido-valor">${fmt(p.valor_total)}</div>
+          <div class="pedido-comissao">+${fmt(p.comissao_valor)}</div>
+        </div>
+      </div>
+      <div class="pedido-meta">
+        ${p.numero_pedido ? `<div class="pedido-tag">📄 ${escHtml(p.numero_pedido)}</div>` : ''}
+        ${p.pares ? `<div class="pedido-tag">👟 ${p.pares} pares</div>` : ''}
+        ${dataStr ? `<div class="pedido-tag">📅 ${dataStr}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function abrirNovoPedido() {
