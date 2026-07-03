@@ -2,10 +2,27 @@
 // Vercel serverless function — processa PDF ou imagem via Claude Sonnet 4.6
 // Extrai dados do pedido automaticamente
 
+const SUPABASE_URL = 'https://xroedpxscpwikfzmjxio.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_rJm-XhVdRxY0bCfd5PqERg_QDMzQMIL';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // --- checagem de autenticação ---
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+  const authCheck = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` }
+  });
+  if (!authCheck.ok) {
+    return res.status(401).json({ error: 'Sessão inválida' });
+  }
+  // --- fim da checagem ---
 
   const { base64, tipo, mimeType } = req.body;
 
