@@ -2022,6 +2022,7 @@ async function salvarPedido() {
         comissao_valor: comissaoFinal || null,
         condicao_pagamento: document.getElementById('conf-condicao').value.trim() || null,
         previsao_faturamento: document.getElementById('conf-previsao').value || null,
+        data_pedido: document.getElementById('conf-data-pedido').value || null,
         observacoes: document.getElementById('conf-obs').value.trim() || null
       })
     });
